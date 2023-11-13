@@ -1,5 +1,0 @@
-{
-    "rust-analyzer.linkedProjects": [
-        "./inscribe/inscribe-io/Cargo.toml"
-    ]
-}
