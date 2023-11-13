@@ -4,7 +4,7 @@
 use gstd::{ActorId, ToOwned};
 // use gstd::{exec, msg, prelude::*, ActorId};
 // use inscribe_io::{Query, Reply, Action, Event, InscribeIoStates};
-use io::{Query, Reply, Action, Event, InscribeIoStates};
+use inscribe_io::{Query, Reply, Action, Event, InscribeIoStates};
 
 
 static mut INSCRIBEIOSTATES: Option<InscribeIoStates> = None;

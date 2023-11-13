@@ -27,4 +27,4 @@ scale-info = { version = "2", default-features = false }
 tokio = { version = "1.33.0", features = ["rt-multi-thread"] }
 
 inscribe = { path = "inscribe"}
-io = { path = "io"}
+inscribe-io = { path = "inscribe-io"}

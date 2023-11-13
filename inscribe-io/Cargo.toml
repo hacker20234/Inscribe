@@ -1,5 +1,5 @@
 [package]
-name = "io"
+name = "inscribe-io"
 version.workspace = true
 edition.workspace = true
 license.workspace = true

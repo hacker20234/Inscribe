@@ -1,4 +1,5 @@
-use io::ProgramMetadata;
+use inscribe_io::ProgramMetadata;
+// use 
 
 fn main() {
     gear_wasm_builder::build_with_metadata::<ProgramMetadata>();

@@ -12,12 +12,15 @@ gmeta.workspace = true
 gstd.workspace = true
 parity-scale-codec.workspace = true
 scale-info.workspace = true
-io.workspace = true
+inscribe-io.workspace = true
+
 
 [build-dependencies]
 gmeta.workspace = true
 gear-wasm-builder.workspace = true
 # vara-bets-io.workspace = true
+inscribe-io.workspace = true
+
 
 [dev-dependencies]
 gtest.workspace = true
