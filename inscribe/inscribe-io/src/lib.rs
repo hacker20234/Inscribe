@@ -1,12 +1,11 @@
 #![no_std]
-
+#![recursion_limit = "256"]
 use core::usize;
 use codec::{Decode, Encode};
 use gstd::{collections::*, MessageId};
 use gstd::{prelude::*, ActorId};
 use scale_info::TypeInfo;
 use gmeta::{InOut, Metadata};
-use data_encoding::BASE64;
 
 
 #[derive(Clone, Default, Encode, Decode, TypeInfo)]
@@ -157,13 +156,13 @@ impl VaraBetsStates {
 
     pub fn refund(&mut self, _base64_encoded_nonce: String, _base64_encoded_betting_data: String, _id: ActorId, _round: u64) {
         // let actorId: ActorId = msg::source();
-        let base64_encoded_nonce = _base64_encoded_nonce;
-        // let d = UTF_8.new_decoder_without_bom_handling();
-        // let res = d.decode_to_utf8(base64_encoded_nonce, dst, last);
-        let _nonce = BASE64.decode(base64_encoded_nonce.as_bytes()).expect("decode the nonce error.");
-        // let nonce = Encoding::decode_mut(&self, base64_encoded_nonce, None);
-        let base64_encoded_betting_data = _base64_encoded_betting_data;
-        let _betting_data = BASE64.decode(base64_encoded_betting_data.as_bytes()).expect("decode the betting data error");
+        // let base64_encoded_nonce = _base64_encoded_nonce;
+        // // let d = UTF_8.new_decoder_without_bom_handling();
+        // // let res = d.decode_to_utf8(base64_encoded_nonce, dst, last);
+        // let _nonce = BASE64.decode(base64_encoded_nonce.as_bytes()).expect("decode the nonce error.");
+        // // let nonce = Encoding::decode_mut(&self, base64_encoded_nonce, None);
+        // let base64_encoded_betting_data = _base64_encoded_betting_data;
+        // let _betting_data = BASE64.decode(base64_encoded_betting_data.as_bytes()).expect("decode the betting data error");
 
     }
 

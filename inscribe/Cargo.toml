@@ -12,3 +12,4 @@ gmeta.workspace = true
 gstd.workspace = true
 parity-scale-codec.workspace = true
 scale-info.workspace = true
+inscribe-io ={ path = "inscribe-io"}
