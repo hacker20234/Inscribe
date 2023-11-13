@@ -18,7 +18,6 @@ inscribe-io.workspace = true
 [build-dependencies]
 gmeta.workspace = true
 gear-wasm-builder.workspace = true
-# vara-bets-io.workspace = true
 inscribe-io.workspace = true
 
 
