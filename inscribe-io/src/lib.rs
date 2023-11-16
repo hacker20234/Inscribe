@@ -1,52 +1,48 @@
 #![no_std]
 use core::usize;
 use codec::{Decode, Encode};
-use gstd::{collections::*, MessageId};
+use gstd::{collections::BTreeMap, MessageId};
 use gstd::{prelude::*, ActorId};
 use scale_info::TypeInfo;
 use gmeta::{InOut, Metadata};
 
 
+#[derive(Default, Debug, Encode, Decode, PartialEq, Eq, PartialOrd, Ord, Clone, TypeInfo, Hash)]
+pub enum VerifyStatus {
+    #[default]
+    Normal,
+    Verified,
+    Evildoer,
+}
+
+
+#[derive(Default, Debug, Encode, Decode, PartialEq, Eq, PartialOrd, Ord, Clone, TypeInfo, Hash)]
+#[codec(crate = gstd::codec)]
+#[scale_info(crate = gstd::scale_info)]
+pub struct Inscribe{
+    pub owner: ActorId,
+    pub tick: String,
+    pub max_supply: u128,
+    pub supply: u128,
+    pub limit: u128,
+    pub mint_per_actorid: u64,
+    pub slogan: String,
+    pub social: String,
+    pub verify_status: VerifyStatus,
+    pub icon: String,
+    pub frame: String,
+    pub balances: Vec<(ActorId, u128)>,
+    pub allowances: Vec<(ActorId, Vec<(ActorId, u128)>)>,
+    pub decimals: u8,
+}
+
 #[derive(Clone, Default, Encode, Decode, TypeInfo)]
-pub struct InscribeIoStates (
+pub struct InscribeIoStates {
+    pub inscribe: BTreeMap<u128, Inscribe>,
+}
+
     // // use to ...
     // pub BTreeMap<u64, ActorId>, 
-    // // 
-    // pub BTreeMap<u64, gstd::String>,
-    // // 
-    // pub BTreeMap<u64, String>, 
-    // // 
-    // pub BTreeMap<u64, (u64, ActorId, u128, u128, String)>,
-    // // Cards Insert
-    // pub BTreeMap<u64, (u64, ActorId, String)>
-);
-
-// #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Encode, Decode, TypeInfo)]
-
-// pub enum BetsRoundState {
-//     #[default]
-
-//     GameStarted,
-//     DealerProofSubmission,
-//     PlayerBetting,
-//     PlayerDecryption,
-//     DealerDecryption,
-//     RewardDistribution,
-//     GameEnded,
-// }
-
-// #[derive(Debug, Clone, Encode, Decode, TypeInfo,PartialEq)]
-// pub enum UserBettingData {
-//     TheRounds,
-//     UserId,
-//     InitBetAmount,
-//     RealBettingAmount,
-//     EncryptedBetData,
-// }
-
-// #[derive(Debug, Clone, Encode, Decode, TypeInfo, PartialEq, Copy)]
-
-// pub struct GameStateStruct(pub BetsRoundsState);
 
 impl InscribeIoStates {
     pub fn reqly_hello() -> gstd::String{
@@ -54,143 +50,75 @@ impl InscribeIoStates {
         return "hello".to_owned();
     }
 
-    // pub fn init_contract_owner(&mut self, actor_id:ActorId) -> bool {
+    pub fn deploy(&mut self) -> bool {
+        let owner = ActorId::from_bs58("1F22iHpizWc2C8vsFtWxy85ne7ucHZzpGs9uX3FSHTzk4Fu".into()).expect("msg");
+        let tick = String::from("tick value");
+        let max_supply = 100;
+        let limit = 50;
+        let mint_per_actorid = 10;
+        let slogan = String::from("slogan value");
+        let social = String::from("social value");
+        let isverify = true;
+        let icon = String::from("icon value");
+        let frame = String::from("frame value");
 
-    //     self.0.insert(1, actor_id);
+        let new_inscribe = Inscribe {
+            owner,
+            tick,
+            max_supply,
+            limit,
+            mint_per_actorid,
+            slogan,
+            social,
+            icon,
+            frame,
+            supply: todo!(),
+            balances: todo!(),
+            allowances: todo!(),
+            decimals: todo!(),
+            verify_status: todo!(),
+        };        
 
-    //     return true;
-    // }
+        self.inscribe.insert(1, new_inscribe);
+        
 
-    // pub fn check_contract_owner(&mut self) -> ActorId {
+        return true;
 
-    //     let actor_id = self.0.get_key_value(&1).expect("Check contract owner error.");
-
-    //     return *actor_id.1;
-
-    // }
-
-    // pub fn current_rounds(&mut self) -> u64{
-    //     if self.1.is_empty() == true {
-    //         return 0;
-    //     }
-    //     else {
-    //         let last:u64 = self.1.len().try_into().unwrap();
-    //         return last;
-    //     }
-    // }
-
-    // pub fn last_round(&mut self) -> (u64, String){
-    //     if self.1.is_empty() != true{
-    //         // let id: u64 = 1;
-    //         // let notice: gstd::String = String::from("value"); 
-    //         let last = self.1.last_key_value();
-    //         match last {
-    //             Some((key, value)) => {
-    //                 return (key.clone(), value.clone());
-    //             },
-    //             None => {todo!()},
-    //         }    
-    //     }
-    //     else {
-    //         todo!()
-    //     }
-    // }
-
-    // pub fn game_start(&mut self, title: String) {
-    //     // let round = 
-    //     let last:u64 = self.1.len().try_into().unwrap();
-    //     let next_rounds = last + 1;
-    //     if self.1.contains_key(&next_rounds) {
-    //         panic!("failed to add url: code exists");
-    //     } else {
-    //         self.1.insert(next_rounds, title);
-    //     }    
-
-    // }
+    }
 
 
-    // pub fn current_round_hash(&mut self, round: u64, base64_encoded_hash: String) {
-    //     if self.2.is_empty() == true{
-    //         self.2.insert(round, base64_encoded_hash.clone());
-    //     }
-
-    //     if self.2.len() == (self.1.len() - 1){
-
-    //         self.2.insert(round, base64_encoded_hash.clone());
-
-    //         // let a = self.1.last_key_value().expect("msg");
-            
-    //     } 
-
-    //     if  self.2.last_key_value() == self.1.last_key_value() {
-
-    //         panic!(" Hash of this round insert duplicate.")
-            
-    //     }
-
-    // }
-
-    // pub fn inquire_current_card_hash(&mut self) -> (u64, String){
-    //         let last = self.2.last_key_value();
-    //         match last {
-    //             Some((key, value)) => {
-
-    //                 return (key.clone(), value.clone());
-    //             },
-    //             None => {todo!()},
-    //         }
-    // }
-
-    // pub fn bet(&mut self, round: u64, id: ActorId, user_bet_amount: u128, encrypted_bet_data: String) {
-    //     // let betting_data_array = [round, id, bet_amount, encrypted_bet_data];
-    //     // self.1.insert(next_rounds, title);
+}
 
 
-    //     let bet_index:u64 = self.3.len().try_into().unwrap();
-    //     let user_bet_index = bet_index + 1;
-    //     // let user_bet_amount: u128 = 0;
-    //     let mix_amount = user_bet_amount - 0; // 0 - > x :
-    //     let user_bet_data = (round, id, user_bet_amount, mix_amount, encrypted_bet_data);
-    //     // let use
-    //     self.3.insert(user_bet_index, user_bet_data);
-
-
-    // }
-
-    // pub fn refund(&mut self, _base64_encoded_nonce: String, _base64_encoded_betting_data: String, _id: ActorId, _round: u64) {
-    //     // let actorId: ActorId = msg::source();
-    //     // let base64_encoded_nonce = _base64_encoded_nonce;
-    //     // // let d = UTF_8.new_decoder_without_bom_handling();
-    //     // // let res = d.decode_to_utf8(base64_encoded_nonce, dst, last);
-    //     // let _nonce = BASE64.decode(base64_encoded_nonce.as_bytes()).expect("decode the nonce error.");
-    //     // // let nonce = Encoding::decode_mut(&self, base64_encoded_nonce, None);
-    //     // let base64_encoded_betting_data = _base64_encoded_betting_data;
-    //     // let _betting_data = BASE64.decode(base64_encoded_betting_data.as_bytes()).expect("decode the betting data error");
-
-    // }
-
-    // pub fn insert_cards(&mut self, round: u64, actor_id: ActorId, encoded_cards_array: String) {
-
-    //     let index = self.4.len() + 1;
-
-
-    //     self.4.insert(index.try_into().unwrap(),(round, actor_id, encoded_cards_array));
-    // }
-
-    // pub fn distribute_rewards(&mut self) -> u64{
-    //     // let mut all_values: Vec<_,_,_,_> = BTreeMap
-    //     let all_bet_times: u64 = self.3.len().try_into().unwrap();
-
-    //     return all_bet_times;
-    // }
-
+pub enum InscribeAction {
+    // Mint {
+    //     transaction_id: u64,
+    //     to: ActorId,
+    //     token_id: TokenId,
+    // },
+    // Burn {
+    //     transaction_id: u64,
+    //     token_id: TokenId,
+    // },
+    // Transfer {
+    //     transaction_id: u64,
+    //     to: ActorId,
+    //     token_id: TokenId,
+    // },
+    // Approve {
+    //     transaction_id: u64,
+    //     to: ActorId,
+    //     token_id: TokenId,
+    // },
+    // Clear {
+    //     transaction_hash: H256,
+    // },
 }
 
 #[derive(Debug, Clone, Encode, Decode, TypeInfo)]
 pub enum Action {
-    // GameState,
-    // GameStart { title: String },
     // GameStop { code: String, url: String },
+    Deploy {},
     Transfer {_inscribe_id: u128,_to: ActorId, _amount: u128},
 
 }
@@ -199,21 +127,11 @@ pub enum Action {
 
 #[derive(Debug, Clone, Encode, Decode, TypeInfo)]
 pub enum Event {
+    DeployEvent{},
     TransferEvent {_inscribe_id: u128,_to: ActorId, _amount: u128},
     BalanceOf(ActorId, u128),
 
-    // GameState,
-    // GameStarted { rounds: u64, title: String },
-    // // GameStoped { code: String, url: String },
-    // InsertedHash { rounds: u64, base64_encoded_cards_hash: String },
-    // InsertedCards { current_round: u64, actor_id: ActorId, encoded_cards_sequence: String },
-
-    // Bet { total_bet_amount: u128, encrypted_bet_data: String },
     // Refund { base64_encoded_nonce: String },
-    // // InsertCards { encoded_cards_sequence: String },
-    // DistributedRewards { base64_encoded_cards_array: String},
-    // // GameStarted { code: String, url: String },
-    // WithDraw {},
 }
 
 

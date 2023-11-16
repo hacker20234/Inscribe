@@ -1,8 +1,8 @@
 #![no_std]
 // #![recursion_limit = "256"]
 
-use gstd::{ActorId, ToOwned};
-// use gstd::{exec, msg, prelude::*, ActorId};
+use gstd::{ActorId, ToOwned, exec, msg, prelude::*};
+// use gstd::{};
 // use inscribe_io::{Query, Reply, Action, Event, InscribeIoStates};
 use inscribe_io::{Query, Reply, Action, Event, InscribeIoStates};
 
@@ -12,11 +12,13 @@ static mut INSCRIBEIOSTATES: Option<InscribeIoStates> = None;
 
 #[no_mangle]
 extern "C" fn init() {
+    // {}
     unsafe { INSCRIBEIOSTATES = Some(InscribeIoStates::default());
- };
-
+ }
 
 }
+
+
 
 #[no_mangle]
 extern "C" fn handle() {
@@ -24,6 +26,10 @@ extern "C" fn handle() {
     let action: Action = gstd::msg::load().expect("failed to load action");
 
     match action {
+        Action::Deploy {  } => {
+            gstd::msg::reply(Event::DeployEvent {},0).expect("Got error");
+        },
+
         Action::Transfer { _inscribe_id, _to, _amount } => {
             todo!();
         },
