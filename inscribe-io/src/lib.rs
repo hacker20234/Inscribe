@@ -15,11 +15,43 @@ pub enum VerifyStatus {
     Evildoer,
 }
 
+#[derive(Default, Debug, Encode, Decode, PartialEq, Eq, PartialOrd, Ord, Clone, TypeInfo, Hash)]
+pub enum InscribeType {
+    #[default]
+    Organization,
+    Individual,
+    None,
+}
+
+#[derive(Default, Debug, Encode, Decode, PartialEq, Eq, PartialOrd, Ord, Clone, TypeInfo, Hash)]
+pub enum MediaType {
+    #[default]
+    Twitter,
+    Website, 
+    Email,
+    Other,
+}
+
+#[derive(Default, Debug, Encode, Decode, PartialEq, Eq, PartialOrd, Ord, Clone, TypeInfo, Hash)]
+pub enum InscribeState {
+    #[default]
+    Deployed,
+    MintStart,
+    MintEnd,    
+}
+
+// #[derive(Default, Debug, Encode, Decode, PartialEq, Eq, PartialOrd, Ord, Clone, TypeInfo, Hash)]
+// pub struct InscribeId{
+//     pub TokenId: u128,
+// }
+
+
 
 #[derive(Default, Debug, Encode, Decode, PartialEq, Eq, PartialOrd, Ord, Clone, TypeInfo, Hash)]
 #[codec(crate = gstd::codec)]
 #[scale_info(crate = gstd::scale_info)]
 pub struct Inscribe{
+    pub inscribe_type:InscribeType,
     pub owner: ActorId,
     pub tick: String,
     pub max_supply: u128,
@@ -27,13 +59,14 @@ pub struct Inscribe{
     pub limit: u128,
     pub mint_per_actorid: u64,
     pub slogan: String,
-    pub social: String,
-    pub verify_status: VerifyStatus,
+    pub media: MediaType,
+    pub verify: VerifyStatus,
     pub icon: String,
     pub frame: String,
     pub balances: Vec<(ActorId, u128)>,
     pub allowances: Vec<(ActorId, Vec<(ActorId, u128)>)>,
     pub decimals: u8,
+    pub inscribe_state:InscribeState,
 }
 
 #[derive(Clone, Default, Encode, Decode, TypeInfo)]
@@ -57,8 +90,8 @@ impl InscribeIoStates {
         let limit = 50;
         let mint_per_actorid = 10;
         let slogan = String::from("slogan value");
-        let social = String::from("social value");
-        let isverify = true;
+        let media = String::from("social value");
+        // let isverify = true;
         let icon = String::from("icon value");
         let frame = String::from("frame value");
 
@@ -69,14 +102,16 @@ impl InscribeIoStates {
             limit,
             mint_per_actorid,
             slogan,
-            social,
             icon,
             frame,
             supply: todo!(),
             balances: todo!(),
             allowances: todo!(),
             decimals: todo!(),
-            verify_status: todo!(),
+            inscribe_type: todo!(),
+            media: todo!(),
+            verify: todo!(),
+            inscribe_state: todo!(),
         };        
 
         self.inscribe.insert(1, new_inscribe);
@@ -90,36 +125,63 @@ impl InscribeIoStates {
 }
 
 
-pub enum InscribeAction {
-    // Mint {
-    //     transaction_id: u64,
-    //     to: ActorId,
-    //     token_id: TokenId,
-    // },
-    // Burn {
-    //     transaction_id: u64,
-    //     token_id: TokenId,
-    // },
-    // Transfer {
-    //     transaction_id: u64,
-    //     to: ActorId,
-    //     token_id: TokenId,
-    // },
-    // Approve {
-    //     transaction_id: u64,
-    //     to: ActorId,
-    //     token_id: TokenId,
-    // },
-    // Clear {
-    //     transaction_hash: H256,
-    // },
-}
+// pub enum InscribeAction {
+//     Deploy {
+
+//     },
+//     Mint {
+//         // transaction_id: u64,
+//         // to: ActorId,
+//         // token_id: TokenId,
+//     },
+//     Burn {
+//         // transaction_id: u64,
+//         // token_id: TokenId,
+//     },
+//     Transfer {
+//         // transaction_id: u64,
+//         // to: ActorId,
+//         // token_id: TokenId,
+//     },
+//     Approve {
+//         // transaction_id: u64,
+//         // to: ActorId,
+//         // token_id: TokenId,
+//     },
+//     Clear {
+//         // transaction_hash: H256,
+//     },
+// }
 
 #[derive(Debug, Clone, Encode, Decode, TypeInfo)]
 pub enum Action {
     // GameStop { code: String, url: String },
-    Deploy {},
-    Transfer {_inscribe_id: u128,_to: ActorId, _amount: u128},
+    Deploy {
+
+    },
+    Mint {
+        // transaction_id: u64,
+        // to: ActorId,
+        // token_id: TokenId,
+    },
+    Burn {
+        // transaction_id: u64,
+        // token_id: TokenId,
+    },
+    Transfer {
+        _inscribe_id: u128,
+        _to: ActorId, 
+        _amount: u128
+    },
+    Approve {
+        // transaction_id: u64,
+        // to: ActorId,
+        // token_id: TokenId,
+    },
+    Clear {
+        // transaction_hash: H256,
+    },
+
 
 }
 
@@ -131,7 +193,31 @@ pub enum Event {
     TransferEvent {_inscribe_id: u128,_to: ActorId, _amount: u128},
     BalanceOf(ActorId, u128),
 
-    // Refund { base64_encoded_nonce: String },
+    Deploy {
+
+    },
+    Mint {
+        // transaction_id: u64,
+        // to: ActorId,
+        // token_id: TokenId,
+    },
+    Burn {
+        // transaction_id: u64,
+        // token_id: TokenId,
+    },
+    Transfer {
+        _inscribe_id: u128,
+        _to: ActorId, 
+        _amount: u128
+    },
+    Approve {
+        // transaction_id: u64,
+        // to: ActorId,
+        // token_id: TokenId,
+    },
+    Clear {
+        // transaction_hash: H256,
+    },
 }
 
 
@@ -140,13 +226,29 @@ pub enum Event {
 pub enum Query {
     All,
     Inscribes,
+    InscribeInfoByIndex(u128),
     InscribesOfActorId,
     BalanceOf(ActorId, u128),
+    Inscribeowner,
+    Inscribestick,
+    InscribesMaxSupply,
+    InscribeTotalLimit,
+    InscribeMintPerActorid,
+    InscribeSlogan,
+    InscribeSocialLink,
+    InscribeIconLink,
+    InscribeFrame,
+    InscribeSupply,
+    InscribeBalances,
+    InscribeAllowances,
+    InscribeDecimals,
+    InscribeVerifyStatus,
     BlockNumber,
     BlockTimestamp,
     ProgramId,
     MessageId,
     Whoami,
+
 }
 
 // impl Query {
@@ -157,12 +259,11 @@ pub enum Query {
 pub enum Reply {
     All(),
     Inscribes(u128),
+    InscribeInfoByIndex(Inscribe),
     InscribesOfActorId(ActorId),
     // retrun balance of address Inscribes amount.
     BalanceOf(ActorId, u128, u128),
-
-
-    Url(Option<String>),
+    // Url(Option<String>),
     Whoami(ActorId),
     BlockNumber(u32),
     BlockTimestamp(u64),

@@ -1,14 +1,9 @@
 #![no_std]
-// #![recursion_limit = "256"]
 
 use gstd::{ActorId, ToOwned, exec, msg, prelude::*};
-// use gstd::{};
-// use inscribe_io::{Query, Reply, Action, Event, InscribeIoStates};
 use inscribe_io::{Query, Reply, Action, Event, InscribeIoStates};
 
-
 static mut INSCRIBEIOSTATES: Option<InscribeIoStates> = None;
-
 
 #[no_mangle]
 extern "C" fn init() {
@@ -33,13 +28,11 @@ extern "C" fn handle() {
         Action::Transfer { _inscribe_id, _to, _amount } => {
             todo!();
         },
-
-        // Action::Transfer { _inscribe_id, _to, _amount }
-        
+        Action::Mint {  } => todo!(),
+        Action::Burn {  } => todo!(),
+        Action::Approve {  } => todo!(),
+        Action::Clear {  } => todo!(),        
     }
-
-
-
 }
 
 
@@ -61,6 +54,21 @@ extern "C" fn state() {
         Query::Inscribes => Reply::Inscribes(100),
         Query::InscribesOfActorId => Reply::InscribesOfActorId(ActorId::from_bs58("16CkY8WrzVREYNSvMJKd1nLQ2S8bjGbhoYCE95thV2CqSSXX".to_owned()).expect("msg")),
         Query::BalanceOf(_, _) => todo!(),
+        Query::InscribeInfoByIndex(_) => todo!(),
+        Query::Inscribeowner => todo!(),
+        Query::Inscribestick => todo!(),
+        Query::InscribesMaxSupply => todo!(),
+        Query::InscribeTotalLimit => todo!(),
+        Query::InscribeMintPerActorid => todo!(),
+        Query::InscribeSlogan => todo!(),
+        Query::InscribeSocialLink => todo!(),
+        Query::InscribeIconLink => todo!(),
+        Query::InscribeFrame => todo!(),
+        Query::InscribeSupply => todo!(),
+        Query::InscribeBalances => todo!(),
+        Query::InscribeAllowances => todo!(),
+        Query::InscribeDecimals => todo!(),
+        Query::InscribeVerifyStatus => todo!(),
     };
     gstd::msg::reply(reply, 0).expect("Failed to share state");
 
