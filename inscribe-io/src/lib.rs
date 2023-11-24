@@ -14,33 +14,33 @@ pub enum Orderstatus {
 }
 
 #[derive(Default, Debug, Encode, Decode, PartialEq, Eq, PartialOrd, Ord, Clone, TypeInfo, Hash)]
-pub struct OrderId(gstd::String);
-// <actorid,hashmap<index, orderid>>
-#[derive(Default, Debug, Encode, Decode, PartialEq, Eq, PartialOrd, Ord, Clone, TypeInfo, Hash)]
-pub struct OrdersManager {
-    // orders of every Actorid
-    pub orders: BTreeMap<ActorId, BTreeMap<u64, OrderId>>
-}
+pub struct OrderId(u128);
+// // <actorid,hashmap<index, orderid>>
+// #[derive(Default, Debug, Encode, Decode, PartialEq, Eq, PartialOrd, Ord, Clone, TypeInfo, Hash)]
+// pub struct OrdersManager {
+//     // orders of every Actorid
+//     pub orders: BTreeMap<ActorId, BTreeMap<u64, OrderId>>
+// }
 
 // <actorid, hashmap<index, inscribe*>>
-#[derive(Default, Debug, Encode, Decode, PartialEq, Eq, PartialOrd, Ord, Clone, TypeInfo, Hash)]
-pub struct InscribeManager {
-    // orders of every Actorid
-    pub inscribes: BTreeMap<ActorId, BTreeMap<u64, Inscribe>>
-}
+// #[derive(Default, Debug, Encode, Decode, PartialEq, Eq, PartialOrd, Ord, Clone, TypeInfo, Hash)]
+// pub struct InscribeManager {
+//     // orders of every Actorid
+//     pub inscribes: BTreeMap<ActorId, BTreeMap<u64, Inscribe>>
+// }
 
 // <actorid, hashmap<index, inscribe_minted>>
-#[derive(Default, Debug, Encode, Decode, PartialEq, Eq, PartialOrd, Ord, Clone, TypeInfo, Hash)]
-pub struct InscribeMintManager {
-    // orders of every Actorid
-    pub inscribes_minted: BTreeMap<ActorId, BTreeMap<u64, Inscribe>>
-}
+// #[derive(Default, Debug, Encode, Decode, PartialEq, Eq, PartialOrd, Ord, Clone, TypeInfo, Hash)]
+// pub struct InscribeMintManager {
+//     // orders of every Actorid
+//     pub inscribes_minted: BTreeMap<ActorId, BTreeMap<u64, Inscribe>>
+// }
 
 // <inscribe_index，balances<actorid,balance>> => balance -> u128.
-#[derive(Default, Debug, Encode, Decode, PartialEq, Eq, PartialOrd, Ord, Clone, TypeInfo, Hash)]
-pub struct Balances {
-    pub balances: BTreeMap<u128, BTreeMap<ActorId, u128>>
-}
+// #[derive(Default, Debug, Encode, Decode, PartialEq, Eq, PartialOrd, Ord, Clone, TypeInfo, Hash)]
+// pub struct Balances {
+//     pub balances: BTreeMap<u128, BTreeMap<ActorId, u128>>
+// }
 
 
 
@@ -89,7 +89,6 @@ pub struct Inscribe{
     pub tick: String,
     pub max_supply: u128,
     pub supply: u128,
-    // inscribe id, actorid, max_mint limit
     pub mint_times_limit: u128,
     pub mint_per_actorid: u64,
     pub slogan: String,
@@ -98,7 +97,7 @@ pub struct Inscribe{
     pub icon: String,
     pub frame: String,
     pub balances: Vec<(ActorId, u128)>,
-    pub allowances: Vec<(ActorId, Vec<(ActorId, u128)>)>,
+    // pub allowances: Vec<(ActorId, Vec<(ActorId, u128)>)>,
     pub decimals: u8,
     pub inscribe_state:InscribeState,
 }
@@ -106,6 +105,15 @@ pub struct Inscribe{
 #[derive(Clone, Default, Encode, Decode, TypeInfo)]
 pub struct InscribeIoStates {
     pub inscribe: BTreeMap<u128, Inscribe>,
+
+    // 
+    pub balances: BTreeMap<u128, BTreeMap<ActorId, u128>>,
+    pub inscribes_minted: BTreeMap<ActorId, BTreeMap<u64, Inscribe>>,
+    // orders of every Actorid
+    pub inscribes: BTreeMap<ActorId, BTreeMap<u64, Inscribe>>,
+
+    pub orders: BTreeMap<ActorId, BTreeMap<u64, OrderId>>,
+
 }
 
 
@@ -117,6 +125,11 @@ impl InscribeIoStates {
     pub fn reqly_hello() -> gstd::String{
 
         return "hello".to_owned();
+    }
+
+    pub fn reqly_info(&mut self) -> (){
+
+        todo!()    
     }
 
     pub fn deploy(&mut self) -> bool {
@@ -141,7 +154,7 @@ impl InscribeIoStates {
             frame,
             supply: todo!(),
             balances: todo!(),
-            allowances: todo!(),
+            // allowances: todo!(),
             decimals: todo!(),
             inscribe_type: todo!(),
             media: todo!(),
@@ -171,31 +184,72 @@ impl InscribeIoStates {
 #[derive(Debug, Clone, Encode, Decode, TypeInfo)]
 pub enum Action {
     Deploy {
+        // inscribe_id: u64,
+        inscribe_data: Inscribe,
+
 
     },
     Mint {
-        // transaction_id: u64,
-        // to: ActorId,
-        // token_id: TokenId,
+        // inscribe_id: which inscribe
+        inscribe_id: u64,
+        to: ActorId
     },
     Burn {
-        // transaction_id: u64,
-        // token_id: TokenId,
+        inscribe_id: u64,
+        from: ActorId,
+        to: ActorId,
+        amt: u128,
     },
     Transfer {
-        _inscribe_id: u128,
-        _to: ActorId, 
-        _amount: u128
+        inscribe_id: u64,
+        from: ActorId,
+        to: ActorId,
+        amt: u128,
     },
-    Approve {
-        // transaction_id: u64,
-        // to: ActorId,
-        // token_id: TokenId,
-    },
-    Clear {
-        // transaction_hash: H256,
+    // Approve {
+    //     // transaction_id: u64,
+    //     // to: ActorId,
+    //     // token_id: TokenId,
+    // },
+    // Clear {
+    //     // transaction_hash: H256,
+    // },
+    ListSellOrder {
+        seller: ActorId,
+        inscribe_id: u64,
+        amt: u128,
+        price: u128,
     },
 
+    CanceleSellOrder {
+        orderid: u128,
+    },
+
+    Buy {
+        buyer: ActorId,
+        oriderid: u128,
+    },
+
+    ListBuyOrder {
+        buyer: ActorId,
+        inscribe_id: u64,
+        amt: u128,
+        price: u128,
+    },
+
+    CanceleBuyOrder {
+        orderid: u128,
+    },
+
+    Sell {
+        seller: ActorId,
+        orderid: u128,
+    },
+
+    UpdateInscribe {
+        inscribeid: u64,
+        inscribedata: Inscribe,
+    }
 
 }
 
@@ -228,6 +282,7 @@ pub enum Event {
 #[derive(Debug, Clone, Encode, Decode, TypeInfo)]
 pub enum Query {
     All,
+
     Inscribes,
     InscribeInfoByIndex(u128),
     InscribesOfActorId,

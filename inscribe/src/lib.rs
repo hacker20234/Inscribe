@@ -24,17 +24,24 @@ extern "C" fn handle() {
     let action: Action = gstd::msg::load().expect("failed to load action");
 
     match action {
-        Action::Deploy {  } => {
+        Action::Deploy { inscribe_data  } => {
             gstd::msg::reply(Event::DeployEvent {},0).expect("Got error");
         },
 
-        Action::Transfer { _inscribe_id, _to, _amount } => {
+        Action::Transfer { inscribe_id, from, to, amt } => {
             todo!();
         },
-        Action::Mint {  } => todo!(),
-        Action::Burn {  } => todo!(),
-        Action::Approve {  } => todo!(),
-        Action::Clear {  } => todo!(),        
+        Action::Mint { inscribe_id, to  } => todo!(),
+        Action::Burn { inscribe_id, from, to, amt  } => todo!(),
+        Action::ListSellOrder { seller, inscribe_id, amt, price } => todo!(),
+        Action::Buy { buyer, oriderid } => todo!(),
+        Action::ListBuyOrder { buyer, inscribe_id, amt, price } => todo!(),
+        Action::Sell { seller, orderid } => todo!(),
+        Action::CanceleSellOrder { orderid } => todo!(),
+        Action::CanceleBuyOrder { orderid } => todo!(),
+        Action::UpdateInscribe { inscribeid, inscribedata } => todo!(),
+        // Action::Approve {  } => todo!(),
+        // Action::Clear {  } => todo!(),        
     }
 }
 
