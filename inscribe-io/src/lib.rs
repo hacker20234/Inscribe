@@ -171,6 +171,46 @@ impl InscribeIoStates {
 
     }
 
+    fn mint(){
+        todo!()
+    }
+
+    fn burn() {
+        todo!()
+    }
+
+    fn trnsfer() {
+        todo!()
+    }
+
+    fn list_sell_order() {
+        todo!()
+    }
+
+    fn cancele_sell_order() {
+        todo!()
+    }
+
+    fn list_buy_order() {
+        todo!()
+
+    }
+
+    fn cancele_buy_order(){
+        todo!()
+    }
+
+    fn buy(){
+        todo!()
+    }
+
+    fn sell() {
+        todo!()
+    }
+
+    fn update_inscribe(){
+        todo!()
+    }
 
 }
 
