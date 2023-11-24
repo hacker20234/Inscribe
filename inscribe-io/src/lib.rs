@@ -226,20 +226,21 @@ pub enum Action {
     Deploy {
         // inscribe_id: u64,
         inscribe_data: Inscribe,
-
-
     },
+
     Mint {
         // inscribe_id: which inscribe
         inscribe_id: u64,
         to: ActorId
     },
+
     Burn {
         inscribe_id: u64,
         from: ActorId,
         to: ActorId,
         amt: u128,
     },
+    
     Transfer {
         inscribe_id: u64,
         from: ActorId,
