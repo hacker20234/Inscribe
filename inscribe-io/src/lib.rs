@@ -171,55 +171,61 @@ impl InscribeIoStates {
 
     }
 
-    fn mint(){
+    fn check_last_inscribe_id(&mut self) {
         todo!()
     }
 
-    fn burn() {
+    fn check_total_inscribes(&mut self) -> u128{
+        return u128::MAX;
+    }
+
+    fn check_inscribe_by_id(&mut self) -> () {
         todo!()
     }
 
-    fn trnsfer() {
+    fn mint(&mut self){
         todo!()
     }
 
-    fn list_sell_order() {
+    fn burn(&mut self) {
         todo!()
     }
 
-    fn cancele_sell_order() {
+    fn trnsfer(&mut self) {
         todo!()
     }
 
-    fn list_buy_order() {
+    fn list_sell_order(&mut self) {
+        todo!()
+    }
+
+    fn cancele_sell_order(&mut self) {
+        todo!()
+    }
+
+    fn list_buy_order(&mut self) {
         todo!()
 
     }
 
-    fn cancele_buy_order(){
+    fn cancele_buy_order(&mut self){
         todo!()
     }
 
-    fn buy(){
+    fn buy(&mut self){
         todo!()
     }
 
-    fn sell() {
+    fn sell(&mut self) {
         todo!()
     }
 
-    fn update_inscribe(){
+    fn update_inscribe(&mut self){
         todo!()
     }
 
 }
 
-// trade
-// 
-// #[derive(Debug, Clone, Encode, Decode, TypeInfo)]
-// pub enum  {
-    
-// }
 
 #[derive(Debug, Clone, Encode, Decode, TypeInfo)]
 pub enum Action {
@@ -240,7 +246,7 @@ pub enum Action {
         to: ActorId,
         amt: u128,
     },
-    
+
     Transfer {
         inscribe_id: u64,
         from: ActorId,
