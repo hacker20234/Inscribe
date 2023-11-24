@@ -24,5 +24,6 @@ inscribe-io.workspace = true
 [dev-dependencies]
 gtest.workspace = true
 
+
 [package.metadata]
 wasm-opt = true

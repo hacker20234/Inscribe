@@ -18,6 +18,9 @@ extern "C" fn init() {
 #[no_mangle]
 extern "C" fn handle() {
     let state = unsafe { INSCRIBEIOSTATES.as_mut().expect("failed to get state as mut") };
+    state.inscribe.contains_key(&0);
+    let _block_number = exec::block_height();
+    let _sender = msg::source();
     let action: Action = gstd::msg::load().expect("failed to load action");
 
     match action {

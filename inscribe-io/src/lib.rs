@@ -1,10 +1,47 @@
 #![no_std]
-use core::usize;
+use core::{usize, fmt::LowerHex};
 use codec::{Decode, Encode};
-use gstd::{collections::BTreeMap, MessageId};
-use gstd::{prelude::*, ActorId};
+use gstd::{collections::{BTreeMap, HashMap}, MessageId, prelude::*, ActorId};
 use scale_info::TypeInfo;
 use gmeta::{InOut, Metadata};
+
+#[derive(Default, Debug, Encode, Decode, PartialEq, Eq, PartialOrd, Ord, Clone, TypeInfo, Hash)]
+pub enum Orderstatus {
+    #[default]
+    Listed,
+    Canceled,
+    Successed,
+}
+
+#[derive(Default, Debug, Encode, Decode, PartialEq, Eq, PartialOrd, Ord, Clone, TypeInfo, Hash)]
+pub struct OrderId(gstd::String);
+// <actorid,hashmap<index, orderid>>
+#[derive(Default, Debug, Encode, Decode, PartialEq, Eq, PartialOrd, Ord, Clone, TypeInfo, Hash)]
+pub struct OrdersManager {
+    // orders of every Actorid
+    pub orders: BTreeMap<ActorId, BTreeMap<u64, OrderId>>
+}
+
+// <actorid, hashmap<index, inscribe*>>
+#[derive(Default, Debug, Encode, Decode, PartialEq, Eq, PartialOrd, Ord, Clone, TypeInfo, Hash)]
+pub struct InscribeManager {
+    // orders of every Actorid
+    pub inscribes: BTreeMap<ActorId, BTreeMap<u64, Inscribe>>
+}
+
+// <actorid, hashmap<index, inscribe_minted>>
+#[derive(Default, Debug, Encode, Decode, PartialEq, Eq, PartialOrd, Ord, Clone, TypeInfo, Hash)]
+pub struct InscribeMintManager {
+    // orders of every Actorid
+    pub inscribes_minted: BTreeMap<ActorId, BTreeMap<u64, Inscribe>>
+}
+
+// <inscribe_index，balances<actorid,balance>> => balance -> u128.
+#[derive(Default, Debug, Encode, Decode, PartialEq, Eq, PartialOrd, Ord, Clone, TypeInfo, Hash)]
+pub struct Balances {
+    pub balances: BTreeMap<u128, BTreeMap<ActorId, u128>>
+}
+
 
 
 #[derive(Default, Debug, Encode, Decode, PartialEq, Eq, PartialOrd, Ord, Clone, TypeInfo, Hash)]
@@ -40,11 +77,6 @@ pub enum InscribeState {
     MintEnd,    
 }
 
-// #[derive(Default, Debug, Encode, Decode, PartialEq, Eq, PartialOrd, Ord, Clone, TypeInfo, Hash)]
-// pub struct InscribeId{
-//     pub TokenId: u128,
-// }
-
 
 
 #[derive(Default, Debug, Encode, Decode, PartialEq, Eq, PartialOrd, Ord, Clone, TypeInfo, Hash)]
@@ -52,11 +84,13 @@ pub enum InscribeState {
 #[scale_info(crate = gstd::scale_info)]
 pub struct Inscribe{
     pub inscribe_type:InscribeType,
-    pub owner: ActorId,
+    pub inscribe_index: u128,
+    pub deployer: ActorId,
     pub tick: String,
     pub max_supply: u128,
     pub supply: u128,
-    pub limit: u128,
+    // inscribe id, actorid, max_mint limit
+    pub mint_times_limit: u128,
     pub mint_per_actorid: u64,
     pub slogan: String,
     pub media: MediaType,
@@ -74,17 +108,19 @@ pub struct InscribeIoStates {
     pub inscribe: BTreeMap<u128, Inscribe>,
 }
 
-    // // use to ...
-    // pub BTreeMap<u64, ActorId>, 
 
 impl InscribeIoStates {
+    pub fn total_inscribes(&mut self) ->u128 {
+        let inscribes = self.inscribe.len();
+        return inscribes.try_into().unwrap();
+    } 
     pub fn reqly_hello() -> gstd::String{
 
         return "hello".to_owned();
     }
 
     pub fn deploy(&mut self) -> bool {
-        let owner = ActorId::from_bs58("1F22iHpizWc2C8vsFtWxy85ne7ucHZzpGs9uX3FSHTzk4Fu".into()).expect("msg");
+        let deployer = ActorId::from_bs58("1F22iHpizWc2C8vsFtWxy85ne7ucHZzpGs9uX3FSHTzk4Fu".into()).expect("msg");
         let tick = String::from("tick value");
         let max_supply = 100;
         let limit = 50;
@@ -96,10 +132,9 @@ impl InscribeIoStates {
         let frame = String::from("frame value");
 
         let new_inscribe = Inscribe {
-            owner,
+            deployer,
             tick,
             max_supply,
-            limit,
             mint_per_actorid,
             slogan,
             icon,
@@ -112,6 +147,8 @@ impl InscribeIoStates {
             media: todo!(),
             verify: todo!(),
             inscribe_state: todo!(),
+            inscribe_index: todo!(),
+            mint_times_limit: todo!(),
         };        
 
         self.inscribe.insert(1, new_inscribe);
@@ -124,38 +161,15 @@ impl InscribeIoStates {
 
 }
 
-
-// pub enum InscribeAction {
-//     Deploy {
-
-//     },
-//     Mint {
-//         // transaction_id: u64,
-//         // to: ActorId,
-//         // token_id: TokenId,
-//     },
-//     Burn {
-//         // transaction_id: u64,
-//         // token_id: TokenId,
-//     },
-//     Transfer {
-//         // transaction_id: u64,
-//         // to: ActorId,
-//         // token_id: TokenId,
-//     },
-//     Approve {
-//         // transaction_id: u64,
-//         // to: ActorId,
-//         // token_id: TokenId,
-//     },
-//     Clear {
-//         // transaction_hash: H256,
-//     },
+// trade
+// 
+// #[derive(Debug, Clone, Encode, Decode, TypeInfo)]
+// pub enum  {
+    
 // }
 
 #[derive(Debug, Clone, Encode, Decode, TypeInfo)]
 pub enum Action {
-    // GameStop { code: String, url: String },
     Deploy {
 
     },
@@ -197,13 +211,8 @@ pub enum Event {
 
     },
     Mint {
-        // transaction_id: u64,
-        // to: ActorId,
-        // token_id: TokenId,
     },
     Burn {
-        // transaction_id: u64,
-        // token_id: TokenId,
     },
     Transfer {
         _inscribe_id: u128,
@@ -211,12 +220,6 @@ pub enum Event {
         _amount: u128
     },
     Approve {
-        // transaction_id: u64,
-        // to: ActorId,
-        // token_id: TokenId,
-    },
-    Clear {
-        // transaction_hash: H256,
     },
 }
 
@@ -248,7 +251,6 @@ pub enum Query {
     ProgramId,
     MessageId,
     Whoami,
-
 }
 
 // impl Query {
