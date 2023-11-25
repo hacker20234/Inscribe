@@ -6,7 +6,16 @@ use scale_info::TypeInfo;
 use gmeta::{InOut, Metadata};
 
 #[derive(Default, Debug, Encode, Decode, PartialEq, Eq, PartialOrd, Ord, Clone, TypeInfo, Hash)]
-pub enum Orderstatus {
+pub struct Order {
+    pub seller: ActorId,
+    pub inscribe_id: InscribeIndexes,
+    pub amt: u128,
+    pub price: u128,
+    pub order_status: OrderStatus,
+}
+
+#[derive(Default, Debug, Encode, Decode, PartialEq, Eq, PartialOrd, Ord, Clone, TypeInfo, Hash)]
+pub enum OrderStatus {
     #[default]
     Listed,
     Canceled,
@@ -14,34 +23,7 @@ pub enum Orderstatus {
 }
 
 #[derive(Default, Debug, Encode, Decode, PartialEq, Eq, PartialOrd, Ord, Clone, TypeInfo, Hash)]
-pub struct OrderId(u128);
-// // <actorid,hashmap<index, orderid>>
-// #[derive(Default, Debug, Encode, Decode, PartialEq, Eq, PartialOrd, Ord, Clone, TypeInfo, Hash)]
-// pub struct OrdersManager {
-//     // orders of every Actorid
-//     pub orders: BTreeMap<ActorId, BTreeMap<u64, OrderId>>
-// }
-
-// <actorid, hashmap<index, inscribe*>>
-// #[derive(Default, Debug, Encode, Decode, PartialEq, Eq, PartialOrd, Ord, Clone, TypeInfo, Hash)]
-// pub struct InscribeManager {
-//     // orders of every Actorid
-//     pub inscribes: BTreeMap<ActorId, BTreeMap<u64, Inscribe>>
-// }
-
-// <actorid, hashmap<index, inscribe_minted>>
-// #[derive(Default, Debug, Encode, Decode, PartialEq, Eq, PartialOrd, Ord, Clone, TypeInfo, Hash)]
-// pub struct InscribeMintManager {
-//     // orders of every Actorid
-//     pub inscribes_minted: BTreeMap<ActorId, BTreeMap<u64, Inscribe>>
-// }
-
-// <inscribe_index，balances<actorid,balance>> => balance -> u128.
-// #[derive(Default, Debug, Encode, Decode, PartialEq, Eq, PartialOrd, Ord, Clone, TypeInfo, Hash)]
-// pub struct Balances {
-//     pub balances: BTreeMap<u128, BTreeMap<ActorId, u128>>
-// }
-
+pub struct OrderId(pub u128);
 
 
 #[derive(Default, Debug, Encode, Decode, PartialEq, Eq, PartialOrd, Ord, Clone, TypeInfo, Hash)]
@@ -77,7 +59,12 @@ pub enum InscribeState {
     MintEnd,    
 }
 
+#[derive(Default, Debug, Encode, Decode, PartialEq, Eq, PartialOrd, Ord, Clone, TypeInfo, Hash)]
+pub struct MintTimes(pub BTreeMap<ActorId, u64>);
 
+
+#[derive(Default, Debug, Encode, Decode, PartialEq, Eq, PartialOrd, Ord, Clone, TypeInfo, Hash, Copy)]
+pub struct InscribeIndexes(pub u128);
 
 #[derive(Default, Debug, Encode, Decode, PartialEq, Eq, PartialOrd, Ord, Clone, TypeInfo, Hash)]
 #[codec(crate = gstd::codec)]
@@ -88,43 +75,53 @@ pub struct Inscribe{
     pub deployer: ActorId,
     pub tick: String,
     pub max_supply: u128,
-    pub supply: u128,
-    pub mint_times_limit: u128,
-    pub mint_per_actorid: u64,
+    pub total_supply: u128,
+    pub amt_per_mint: u128,
     pub slogan: String,
     pub media: MediaType,
     pub verify: VerifyStatus,
     pub icon: String,
     pub frame: String,
     pub balances: Vec<(ActorId, u128)>,
-    // pub allowances: Vec<(ActorId, Vec<(ActorId, u128)>)>,
     pub decimals: u8,
     pub inscribe_state:InscribeState,
 }
 
+
 #[derive(Clone, Default, Encode, Decode, TypeInfo)]
 pub struct InscribeIoStates {
-    pub inscribe: BTreeMap<u128, Inscribe>,
-
-    // 
-    pub balances: BTreeMap<u128, BTreeMap<ActorId, u128>>,
+    // inscribe
+    pub inscribe_indexes: BTreeMap<InscribeIndexes, Inscribe>,
+    pub balances: BTreeMap<InscribeIndexes, BTreeMap<ActorId, u128>>,
     pub inscribes_minted: BTreeMap<ActorId, BTreeMap<u64, Inscribe>>,
-    // orders of every Actorid
     pub inscribes: BTreeMap<ActorId, BTreeMap<u64, Inscribe>>,
-
-    pub orders: BTreeMap<ActorId, BTreeMap<u64, OrderId>>,
-
+    pub mint_times: BTreeMap<InscribeIndexes, MintTimes>,
+    pub all_orders: BTreeMap<OrderId, Order>,
+    pub orders_of_actorid: BTreeMap<ActorId, BTreeMap<OrderId, Order>>,
 }
 
 
 impl InscribeIoStates {
     pub fn total_inscribes(&mut self) ->u128 {
-        let inscribes = self.inscribe.len();
+        let inscribes = self.inscribe_indexes.len();
         return inscribes.try_into().unwrap();
     } 
-    pub fn reqly_hello() -> gstd::String{
+    // pub fn reqly_hello() -> gstd::String{
 
-        return "hello".to_owned();
+    //     return "hello".to_owned();
+    // }
+
+    pub fn last_order_id(&mut self) -> OrderId {
+        let id = self.all_orders.last_key_value().expect("msg").0.clone();
+
+        return id;
+    }
+
+    pub fn insert_order_to_all_orders(&mut self, id: OrderId, order: Order) -> bool {
+
+        self.all_orders.insert(id, order);
+
+        return true;
     }
 
     pub fn reqly_info(&mut self) -> (){
@@ -132,96 +129,105 @@ impl InscribeIoStates {
         todo!()    
     }
 
-    pub fn deploy(&mut self) -> bool {
-        let deployer = ActorId::from_bs58("1F22iHpizWc2C8vsFtWxy85ne7ucHZzpGs9uX3FSHTzk4Fu".into()).expect("msg");
-        let tick = String::from("tick value");
-        let max_supply = 100;
-        let limit = 50;
-        let mint_per_actorid = 10;
-        let slogan = String::from("slogan value");
-        let media = String::from("social value");
-        // let isverify = true;
-        let icon = String::from("icon value");
-        let frame = String::from("frame value");
+    pub fn deploy(&mut self, inscribe_data: Inscribe) -> bool {
+        let index: u128 = self.check_last_inscribe_indexes().0 + 1 as u128;
 
-        let new_inscribe = Inscribe {
-            deployer,
-            tick,
-            max_supply,
-            mint_per_actorid,
-            slogan,
-            icon,
-            frame,
-            supply: todo!(),
-            balances: todo!(),
-            // allowances: todo!(),
-            decimals: todo!(),
-            inscribe_type: todo!(),
-            media: todo!(),
-            verify: todo!(),
-            inscribe_state: todo!(),
-            inscribe_index: todo!(),
-            mint_times_limit: todo!(),
-        };        
-
-        self.inscribe.insert(1, new_inscribe);
-        
-
+        self.inscribe_indexes.insert(InscribeIndexes(index), inscribe_data);
         return true;
 
     }
 
-    fn check_last_inscribe_id(&mut self) {
-        todo!()
+    pub fn check_last_inscribe_indexes(&mut self) -> InscribeIndexes{
+        let last_inscribe_indexes = self.inscribe_indexes.last_key_value().expect("msg").0.to_owned();
+        return last_inscribe_indexes;
+        // todo!()
     }
 
-    fn check_total_inscribes(&mut self) -> u128{
+    pub fn check_total_inscribes(&mut self) -> u128{
         return u128::MAX;
     }
 
-    fn check_inscribe_by_id(&mut self) -> () {
+    pub fn check_inscribe_by_id(&mut self) -> () {
         todo!()
     }
 
-    fn mint(&mut self){
+    pub fn mint(&mut self){
         todo!()
     }
 
-    fn burn(&mut self) {
+    pub fn burn(&mut self) {
         todo!()
     }
 
-    fn trnsfer(&mut self) {
+    pub fn trnsfer(&mut self, inscribe_id: u128, from: ActorId, to: ActorId, amt: u128, msg_sender: ActorId) {
+
+
+        // check inscribe_id is existing
+        assert_eq!(self.inscribe_indexes.contains_key(&InscribeIndexes(inscribe_id)), true);
+
+        // check amt is <= from: actorid's balance.
+        // 
+        let mut balances_of_inscribe = self.balances.get_key_value(&InscribeIndexes(inscribe_id)).expect("msg").1.clone();
+        let balance_of_from = balances_of_inscribe.get_key_value(&from).expect("msg").1.clone();
+        assert_eq!(balance_of_from - amt >= 0 as u128, true);
+        // check msg sender is equal from
+        // let msg_sender = msg::source();
+        assert_eq!(from, msg_sender);
+        
+        // state.trnsfer(inscribe_id, from, to, amt);
+        let new_balance_of_from = balance_of_from - amt;
+        // let new_balance_of_to = amt;
+        balances_of_inscribe.insert(from, new_balance_of_from);
+        balances_of_inscribe.insert(to, amt);
+        
+
+        // todo!()
+    }
+
+    pub fn list_sell_order(&mut self) {
         todo!()
     }
 
-    fn list_sell_order(&mut self) {
+    pub fn cancele_sell_order(&mut self) {
         todo!()
     }
 
-    fn cancele_sell_order(&mut self) {
-        todo!()
-    }
-
-    fn list_buy_order(&mut self) {
+    pub fn list_buy_order(&mut self) {
         todo!()
 
     }
 
-    fn cancele_buy_order(&mut self){
+    pub fn cancele_buy_order(&mut self){
         todo!()
     }
 
-    fn buy(&mut self){
+    pub fn buy(&mut self){
         todo!()
     }
 
-    fn sell(&mut self) {
+    pub fn sell(&mut self) {
         todo!()
     }
 
-    fn update_inscribe(&mut self){
-        todo!()
+    pub fn update_inscribe(&mut self, index: u128, new_inscribe_data: Inscribe) -> bool {
+        self.inscribe_indexes.insert(InscribeIndexes(index), new_inscribe_data);
+        return true;
+        // todo!()
+    }
+
+    pub fn verify_status(&mut self, inscribe_id: u128, msg_sender: ActorId, verifystatus:VerifyStatus) -> bool {
+        assert_eq!(self.inscribe_indexes.contains_key(&InscribeIndexes(inscribe_id)), true);
+        // check msg sender is admin
+        let admin = ActorId::from_bs58("1F22iHpizWc2C8vsFtWxy85ne7ucHZzpGs9uX3FSHTzk4Fu".to_owned()).expect("msg");
+        // let msg_sender = msg::source();
+        assert_eq!(admin, msg_sender);
+        let mut new_inscribe_data: Inscribe = self.inscribe_indexes.get_key_value(&InscribeIndexes(inscribe_id)).expect("msg").1.clone();
+        new_inscribe_data.verify = verifystatus.clone();
+
+        self.update_inscribe(inscribe_id, new_inscribe_data);
+
+        // todo!()
+        return true;
     }
 
 }
@@ -236,34 +242,26 @@ pub enum Action {
 
     Mint {
         // inscribe_id: which inscribe
-        inscribe_id: u64,
+        inscribe_id: u128,
         to: ActorId
     },
 
     Burn {
-        inscribe_id: u64,
+        inscribe_id: u128,
         from: ActorId,
         to: ActorId,
         amt: u128,
     },
 
     Transfer {
-        inscribe_id: u64,
+        inscribe_id: u128,
         from: ActorId,
         to: ActorId,
         amt: u128,
     },
-    // Approve {
-    //     // transaction_id: u64,
-    //     // to: ActorId,
-    //     // token_id: TokenId,
-    // },
-    // Clear {
-    //     // transaction_hash: H256,
-    // },
     ListSellOrder {
         seller: ActorId,
-        inscribe_id: u64,
+        inscribe_id: u128,
         amt: u128,
         price: u128,
     },
@@ -273,7 +271,7 @@ pub enum Action {
     },
 
     Buy {
-        buyer: ActorId,
+        // buyer: ActorId,
         oriderid: u128,
     },
 
@@ -294,8 +292,13 @@ pub enum Action {
     },
 
     UpdateInscribe {
-        inscribeid: u64,
+        inscribe_id: u128,
         inscribedata: Inscribe,
+    },
+
+    Verify {
+        inscribe_id: u128,
+        verifystatus: VerifyStatus,
     }
 
 }
@@ -304,7 +307,7 @@ pub enum Action {
 
 #[derive(Debug, Clone, Encode, Decode, TypeInfo)]
 pub enum Event {
-    DeployEvent{},
+    DeployEvent{inscribe_data: Inscribe},
     TransferEvent {_inscribe_id: u128,_to: ActorId, _amount: u128},
     BalanceOf(ActorId, u128),
 
@@ -312,6 +315,8 @@ pub enum Event {
 
     },
     Mint {
+        inscribe_id: u128, 
+        to:ActorId,
     },
     Burn {
     },
@@ -320,34 +325,51 @@ pub enum Event {
         _to: ActorId, 
         _amount: u128
     },
-    Approve {
+    ListSellOrder {
+        seller:ActorId, 
+        inscribe_id: u128,
+        amt: u128,
+        price:u128,
     },
+
+    UpdateInscribe {
+        inscribe_id: u128,
+        new_inscribe_data: Inscribe,
+    },
+
+    Verify {
+        inscribe_id: u128,
+        verifystatus: VerifyStatus
+    }
+
+    // Approve {
+    // },
 }
 
 
 
 #[derive(Debug, Clone, Encode, Decode, TypeInfo)]
 pub enum Query {
-    All,
+    // All,
 
-    Inscribes,
-    InscribeInfoByIndex(u128),
-    InscribesOfActorId,
-    BalanceOf(ActorId, u128),
-    Inscribeowner,
-    Inscribestick,
-    InscribesMaxSupply,
-    InscribeTotalLimit,
-    InscribeMintPerActorid,
-    InscribeSlogan,
-    InscribeSocialLink,
-    InscribeIconLink,
-    InscribeFrame,
-    InscribeSupply,
-    InscribeBalances,
-    InscribeAllowances,
-    InscribeDecimals,
-    InscribeVerifyStatus,
+    // Inscribes,
+    // InscribeInfoByIndex(u128),
+    // InscribesOfActorId,
+    // BalanceOf(ActorId, u128),
+    // Inscribeowner,
+    // Inscribestick,
+    // InscribesMaxSupply,
+    // InscribeTotalLimit,
+    // InscribeMintPerActorid,
+    // InscribeSlogan,
+    // InscribeSocialLink,
+    // InscribeIconLink,
+    // InscribeFrame,
+    // InscribeSupply,
+    // InscribeBalances,
+    // InscribeAllowances,
+    // InscribeDecimals,
+    // InscribeVerifyStatus,
     BlockNumber,
     BlockTimestamp,
     ProgramId,
