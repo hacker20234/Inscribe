@@ -1,15 +1,53 @@
 #![no_std]
 
-use gstd::{ActorId, ToOwned, exec, msg, prelude::*};
-use inscribe_io::{Query, Reply, Action, Event, InscribeIoStates, Inscribe, VerifyStatus, InscribeIndexes, OrderId, Order, OrderStatus};
+use core::u128;
+
+use gstd::{collections::BTreeMap,ActorId, ToOwned, exec, msg::{self, value}, prelude::*, Value};
+use inscribe_io::{Query, Reply, Action, Event, InscribeIoStates, Inscribe, VerifyStatus, InscribeIndexes, OrderId, Order, OrderStatus, Balances};
 
 static mut INSCRIBEIOSTATES: Option<InscribeIoStates> = None;
+static mut INSCRIBEINDEXES: Option<InscribeIndexes> = None;
+// static mut ORDER: Option<Order> = None;
+// static mut ORDERID: Option<OrderId> = None;
+static mut INSCRIBE: Option<Inscribe> = None;
 
 #[no_mangle]
 extern "C" fn init() {
     // {}
-    unsafe { INSCRIBEIOSTATES = Some(InscribeIoStates::default());
- }
+    unsafe { 
+        INSCRIBEIOSTATES = Some(InscribeIoStates::default());
+        INSCRIBEINDEXES = Some(InscribeIndexes::default());
+        // ORDER = Some(Order::default());
+        // ORDERID = Some(OrderId::default());
+        INSCRIBE = Some(Inscribe::default());
+    
+    };
+    // let Indexes = unsafe { INSCRIBEINDEXES.as_mut().expect("failed to init Indexes") };
+    let state = unsafe { INSCRIBEIOSTATES.as_mut().expect("failed to get state as mut") };
+
+    state.inscribe_indexes.insert(inscribe_io::InscribeIndexes(1), 
+    Inscribe { 
+        inscribe_type: inscribe_io::InscribeType::Organization, 
+        inscribe_index: 1, 
+        deployer: msg::source(), 
+        tick: "Build on VRAR".to_owned(), 
+        max_supply: 1000000000000, 
+        total_supply: 0, 
+        amt_per_mint: 1000, 
+        slogan: "make it to the moon".to_owned(), 
+        media: inscribe_io::MediaType::Twitter,
+        media_link: "https://x.com/inscirbe".to_owned(), 
+        verify: VerifyStatus::None, 
+        icon: "https://ipfs.io/icon".to_owned(), 
+        frame: "https://ipfs.io/frame".to_owned(), 
+        decimals: 0, 
+        inscribe_state: inscribe_io::InscribeState::MintStart 
+    });
+    let id = msg::source();
+    let amt:u128 = 1000;
+    let mut map: BTreeMap<ActorId, u128> = BTreeMap::new();
+    map.insert(id, amt);
+    state.balances.insert(InscribeIndexes(1), map);
 
 }
 
@@ -18,62 +56,50 @@ extern "C" fn init() {
 #[no_mangle]
 extern "C" fn handle() {
     let state = unsafe { INSCRIBEIOSTATES.as_mut().expect("failed to get state as mut") };
-    // let _block_number = exec::block_height();
-    // let _sender = msg::source();
     let action: Action = gstd::msg::load().expect("failed to load action");
 
     match action {
         Action::Deploy { inscribe_data  } => {
             // check inscribe ticks is existing
-            state.deploy(inscribe_data.clone());
+            let id:ActorId = msg::source();
+            let is_deployed = state.deploy(inscribe_data.clone(), id);
+            assert_eq!(is_deployed, true);
             msg::reply(Event::DeployEvent { inscribe_data },0).expect("Got error");
         },
 
         Action::Transfer { inscribe_id, from, to, amt } => {
-            // check inscribe_id is existing
-            // assert_eq!(state.inscribe_indexes.contains_key(&InscribeIndexes(inscribe_id)), true);
 
-            // // check amt is <= from: actorid's balance.
-            // // 
-            // let mut balances_of_inscribe = state.balances.get_key_value(&InscribeIndexes(inscribe_id)).expect("msg").1.clone();
-            // let balance_of_from = balances_of_inscribe.get_key_value(&from).expect("msg").1.clone();
-            // assert_eq!(balance_of_from - amt >= 0 as u128, true);
-            // // check msg sender is equal from
             let msg_sender = msg::source();
-            // assert_eq!(from, msg_sender);
-            
-            // // state.trnsfer(inscribe_id, from, to, amt);
-            // let new_balance_of_from = balance_of_from - amt;
-            // // let new_balance_of_to = amt;
-            // balances_of_inscribe.insert(from, new_balance_of_from);
-            // balances_of_inscribe.insert(to, amt);
 
             state.trnsfer(inscribe_id, from, to, amt, msg_sender);
             let _reply = msg::reply("transfer", 0);
 
             // todo!();
         },
-        Action::Mint { inscribe_id, to  } => {
+        Action::Mint { inscribe_id  } => {
+            let to = msg::source();
             // check inscribe_id is exsiting.
-            assert_eq!(state.inscribe_indexes.contains_key(&InscribeIndexes(inscribe_id)), true);
-            let mut balances_of_inscribe = state.balances.get_key_value(&InscribeIndexes(inscribe_id)).expect("msg").1.clone();
+            // assert_eq!(state.inscribe_indexes.contains_key(&InscribeIndexes(inscribe_id)), true);
+            // let mut balances_of_inscribe = state.balances.get_key_value(&InscribeIndexes(inscribe_id)).expect("msg").1.clone();
             
-            let mut inscribe_of_id = state.inscribe_indexes.get_key_value(&InscribeIndexes(inscribe_id)).expect("msg").1.clone();
-            let max_supply = inscribe_of_id.max_supply;
-            let total_supply = inscribe_of_id.total_supply;
-            let amt = inscribe_of_id.amt_per_mint;
-            // check max amt is reach ?
+            // let mut inscribe_of_id = state.inscribe_indexes.get_key_value(&InscribeIndexes(inscribe_id)).expect("msg").1.clone();
+            // let max_supply = inscribe_of_id.max_supply;
+            // let total_supply = inscribe_of_id.total_supply;
+            // let amt = inscribe_of_id.amt_per_mint;
+            // // check max amt is reach ?
 
-            assert_eq!(max_supply - (total_supply + amt) >= 0 as u128, true);
+            // assert_eq!(max_supply - (total_supply + amt) >= 0 as u128, true);
 
-            // check actorid's current amt.
+            // // check actorid's current amt.
 
-            let mut cureent_amt = balances_of_inscribe.get_key_value(&to).expect("msg").1.clone();
+            // let mut cureent_amt = balances_of_inscribe.get_key_value(&to).expect("msg").1.clone();
 
-            cureent_amt += amt;           
+            // cureent_amt += amt;           
 
-            balances_of_inscribe.insert(to, cureent_amt);
-            inscribe_of_id.total_supply += amt;
+            // balances_of_inscribe.insert(to, cureent_amt);
+            // inscribe_of_id.total_supply += amt;
+
+            state.mint(inscribe_id, to);
 
             let _ = msg::reply(Event::Mint { inscribe_id, to  }, 0);
 
@@ -90,8 +116,8 @@ extern "C" fn handle() {
 
             assert_eq!(max_supply - (total_supply + amt) >= 0 as u128, true);
 
-            balances_of_inscribe.insert(from, amt);
-            inscribe_of_id.total_supply -= amt;
+            // balances_of_inscribe.insert(from, amt);
+            // inscribe_of_id.total_supply -= amt;
             // inscribe_of_id
 
 
@@ -105,28 +131,28 @@ extern "C" fn handle() {
             assert_eq!(state.inscribe_indexes.contains_key(&InscribeIndexes(inscribe_id)), true);
 
             // check amt of actorid
-            let mut balances_of_inscribe = state.balances.get_key_value(&InscribeIndexes(inscribe_id)).expect("msg").1.clone();
+            let balances_of_inscribe = state.balances.get_key_value(&InscribeIndexes(inscribe_id)).expect("msg").1.clone();
             // let mut inscribe_of_id = state.inscribe_indexes.get_key_value(&InscribeIndexes(inscribe_id)).expect("msg").1.clone();
 
-            let balances_of_seller = balances_of_inscribe.get_key_value(&seller).expect("msg").1.clone();
-            assert_eq!(balances_of_seller - amt >= 0 as u128, true);
+            // let balances_of_seller = balances_of_inscribe.get_key_value(&seller).expect("msg").1.clone();
+            // assert_eq!(balances_of_seller - amt >= 0 as u128, true);
 
             let msg_sender = msg::source();
             assert_eq!(seller, msg_sender);
             
             // state.trnsfer(inscribe_id, from, to, amt);
-            let new_balance_of_seller = balances_of_seller - amt;
+            // let new_balance_of_seller = balances_of_seller - amt;
 
             let trade_contract = exec::program_id();
-            let balances_of_trade_contract = balances_of_inscribe.get_key_value(&trade_contract).expect("msg").1.clone();
+            // let balances_of_trade_contract = balances_of_inscribe.get_key_value(&trade_contract).expect("msg").1.clone();
             // let new_balance_of_to = amt;
-            let new_balances_of_trade_contract = balances_of_trade_contract + amt;
+            // let new_balances_of_trade_contract = balances_of_trade_contract + amt;
 
             // transfer something to contract 
             // update balance of user and contract.
 
-            balances_of_inscribe.insert(seller, new_balance_of_seller);
-            balances_of_inscribe.insert(trade_contract, new_balances_of_trade_contract);
+            // balances_of_inscribe.insert(seller, new_balance_of_seller);
+            // balances_of_inscribe.insert(trade_contract, new_balances_of_trade_contract);
 
             // generate orderid
             let order_id:OrderId = inscribe_io::OrderId(state.last_order_id().0 + 1);
@@ -175,20 +201,20 @@ extern "C" fn handle() {
 
             // transfer inscribe to buyer
             // state.trnsfer(InscribeIndexes(inscribe_id), exec::program_id(), buyer, amt);
-            let mut balances_of_inscribe = state.balances.get_key_value(&inscribe_id).expect("msg").1.clone();
-            let balance_of_buyer = balances_of_inscribe.get_key_value(&buyer).expect("msg").1.clone();
-            let balance_of_trader_contract = balances_of_inscribe.get_key_value(&exec::program_id()).expect("msg").1.clone();
+            // let mut balances_of_inscribe = state.balances.get_key_value(&inscribe_id).expect("msg").1.clone();
+            // let balance_of_buyer = balances_of_inscribe.get_key_value(&buyer).expect("msg").1.clone();
+            // let balance_of_trader_contract = balances_of_inscribe.get_key_value(&exec::program_id()).expect("msg").1.clone();
             // assert_eq!(balance_of_from - amt >= 0 as u128, true);
             // check msg sender is equal from
             // let msg_sender = msg::source();
             assert_eq!(buyer, msg::source());
             
             // state.trnsfer(inscribe_id, from, to, amt);
-            let new_balance_of_buyer = balance_of_buyer + amt;
-            let new_balance_of_trader_contract = balance_of_trader_contract - amt;
+            // let new_balance_of_buyer = balance_of_buyer + amt;
+            // let new_balance_of_trader_contract = balance_of_trader_contract - amt;
             // let new_balance_of_to = amt;
-            balances_of_inscribe.insert(buyer, new_balance_of_buyer);
-            balances_of_inscribe.insert(exec::program_id(), new_balance_of_trader_contract);
+            // balances_of_inscribe.insert(buyer, new_balance_of_buyer);
+            // balances_of_inscribe.insert(exec::program_id(), new_balance_of_trader_contract);
     
             
             // update order info in states.
@@ -279,7 +305,7 @@ extern "C" fn handle() {
 
 extern "C" fn state() {
     let query = gstd::msg::load().expect("failed to load query");
-    // let mut state: VaraBetsStates = unsafe { VARABETSSTATES.as_ref().expect("failed to get contract state").clone() };
+    let state = unsafe { INSCRIBEIOSTATES.as_mut().expect("failed to get state as mut").clone() };
 
     let reply = match query {
 
@@ -288,7 +314,15 @@ extern "C" fn state() {
         Query::BlockTimestamp => Reply::BlockTimestamp(gstd::exec::block_timestamp()),
         Query::ProgramId => Reply::ProgramId(gstd::exec::program_id()),
         Query::MessageId => Reply::MessageId(gstd::msg::id()),
-        // Query::All => todo!(),
+        Query::QueryInscribe(u128) => {
+            // Reply::ReplyInscribe(state.inscribe_indexes.get_key_value(&InscribeIndexes).expect("msg").1.clone()),
+            let rt = state.inscribe_indexes.get_key_value(&InscribeIndexes(u128)).expect("msg").1.clone();
+            Reply::ReplyInscribe(rt)
+        }
+        // Query::QueryInscribe(_) => todo!(),
+        Query::All => {
+            Reply::All(state.clone())
+        },
         // Query::Inscribes => Reply::Inscribes(100),
         // Query::InscribesOfActorId => Reply::InscribesOfActorId(ActorId::from_bs58("16CkY8WrzVREYNSvMJKd1nLQ2S8bjGbhoYCE95thV2CqSSXX".to_owned()).expect("msg")),
         // Query::BalanceOf(_, _) => todo!(),

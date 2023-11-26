@@ -1,7 +1,7 @@
 #![no_std]
-use core::{usize, fmt::LowerHex};
+use core::usize;
 use codec::{Decode, Encode};
-use gstd::{collections::{BTreeMap, HashMap}, MessageId, prelude::*, ActorId};
+use gstd::{collections::BTreeMap, MessageId, prelude::*, ActorId};
 use scale_info::TypeInfo;
 use gmeta::{InOut, Metadata};
 
@@ -15,6 +15,18 @@ pub struct Order {
 }
 
 #[derive(Default, Debug, Encode, Decode, PartialEq, Eq, PartialOrd, Ord, Clone, TypeInfo, Hash)]
+pub struct Balances {
+    pub balance: BTreeMap<ActorId, u128>
+}
+
+// impl Balances {
+//     pub fn update(&mut self, id:ActorId, balances:u128) -> Balances{
+//         self.balance.insert(id, balances);
+//     }
+    
+// }
+
+#[derive(Default, Debug, Encode, Decode, PartialEq, Eq, PartialOrd, Ord, Clone, TypeInfo, Hash)]
 pub enum OrderStatus {
     #[default]
     Listed,
@@ -26,15 +38,15 @@ pub enum OrderStatus {
 pub struct OrderId(pub u128);
 
 
-#[derive(Default, Debug, Encode, Decode, PartialEq, Eq, PartialOrd, Ord, Clone, TypeInfo, Hash)]
+#[derive(Default, Debug, Encode, Decode, PartialEq, Eq, PartialOrd, Ord, Clone, TypeInfo, Hash, Copy)]
 pub enum VerifyStatus {
     #[default]
-    Normal,
+    None,
     Verified,
     Evildoer,
 }
 
-#[derive(Default, Debug, Encode, Decode, PartialEq, Eq, PartialOrd, Ord, Clone, TypeInfo, Hash)]
+#[derive(Default, Debug, Encode, Decode, PartialEq, Eq, PartialOrd, Ord, Clone, TypeInfo, Hash, Copy)]
 pub enum InscribeType {
     #[default]
     Organization,
@@ -42,7 +54,7 @@ pub enum InscribeType {
     None,
 }
 
-#[derive(Default, Debug, Encode, Decode, PartialEq, Eq, PartialOrd, Ord, Clone, TypeInfo, Hash)]
+#[derive(Default, Debug, Encode, Decode, PartialEq, Eq, PartialOrd, Ord, Clone, TypeInfo, Hash, Copy)]
 pub enum MediaType {
     #[default]
     Twitter,
@@ -51,7 +63,7 @@ pub enum MediaType {
     Other,
 }
 
-#[derive(Default, Debug, Encode, Decode, PartialEq, Eq, PartialOrd, Ord, Clone, TypeInfo, Hash)]
+#[derive(Default, Debug, Encode, Decode, PartialEq, Eq, PartialOrd, Ord, Clone, TypeInfo, Hash, Copy)]
 pub enum InscribeState {
     #[default]
     Deployed,
@@ -79,10 +91,10 @@ pub struct Inscribe{
     pub amt_per_mint: u128,
     pub slogan: String,
     pub media: MediaType,
+    pub media_link: String,
     pub verify: VerifyStatus,
     pub icon: String,
     pub frame: String,
-    pub balances: Vec<(ActorId, u128)>,
     pub decimals: u8,
     pub inscribe_state:InscribeState,
 }
@@ -93,6 +105,7 @@ pub struct InscribeIoStates {
     // inscribe
     pub inscribe_indexes: BTreeMap<InscribeIndexes, Inscribe>,
     pub balances: BTreeMap<InscribeIndexes, BTreeMap<ActorId, u128>>,
+    pub totalsupply: BTreeMap<InscribeIndexes,u128>,
     pub inscribes_minted: BTreeMap<ActorId, BTreeMap<u64, Inscribe>>,
     pub inscribes: BTreeMap<ActorId, BTreeMap<u64, Inscribe>>,
     pub mint_times: BTreeMap<InscribeIndexes, MintTimes>,
@@ -106,10 +119,6 @@ impl InscribeIoStates {
         let inscribes = self.inscribe_indexes.len();
         return inscribes.try_into().unwrap();
     } 
-    // pub fn reqly_hello() -> gstd::String{
-
-    //     return "hello".to_owned();
-    // }
 
     pub fn last_order_id(&mut self) -> OrderId {
         let id = self.all_orders.last_key_value().expect("msg").0.clone();
@@ -129,16 +138,30 @@ impl InscribeIoStates {
         todo!()    
     }
 
-    pub fn deploy(&mut self, inscribe_data: Inscribe) -> bool {
-        let index: u128 = self.check_last_inscribe_indexes().0 + 1 as u128;
-
+    pub fn deploy(&mut self, mut inscribe_data: Inscribe, id:ActorId) -> bool {
+        let index: u128 = self.check_last_inscribe_indexes().0 + 1;
+        inscribe_data.verify = VerifyStatus::None;
+        inscribe_data.inscribe_state = InscribeState::MintStart;
+        inscribe_data.total_supply = 0;
+        inscribe_data.inscribe_index = index;
         self.inscribe_indexes.insert(InscribeIndexes(index), inscribe_data);
-        return true;
 
+        // init balances for store......
+        let amt:u128 = 0;
+        let mut map: BTreeMap<ActorId, u128> = BTreeMap::new();
+        map.insert(id, amt);
+        self.balances.insert(InscribeIndexes(index), map);
+
+        // init totalsupply 
+        // let init_value = &inscribe_data.total_supply.clone();
+        let mut totalsupply:BTreeMap<InscribeIndexes, u128> = BTreeMap::new();
+        totalsupply.insert(InscribeIndexes(index), 0);
+    
+        return true;
     }
 
     pub fn check_last_inscribe_indexes(&mut self) -> InscribeIndexes{
-        let last_inscribe_indexes = self.inscribe_indexes.last_key_value().expect("msg").0.to_owned();
+        let last_inscribe_indexes = self.inscribe_indexes.last_key_value().expect("check inscribe indexed error").0.to_owned();
         return last_inscribe_indexes;
         // todo!()
     }
@@ -151,8 +174,39 @@ impl InscribeIoStates {
         todo!()
     }
 
-    pub fn mint(&mut self){
-        todo!()
+    pub fn mint(&mut self, inscribe_id: u128, to: ActorId) -> bool {
+        // check inscribe_id is exsiting.
+        assert_eq!(self.inscribe_indexes.contains_key(&InscribeIndexes(inscribe_id)), true);
+        let inscribe = self.inscribe_indexes.get_key_value(&InscribeIndexes(inscribe_id)).expect("msg").1.clone();
+        let max_supply = inscribe.max_supply;
+        let total_supply = inscribe.total_supply;
+        let amt = inscribe.amt_per_mint;
+        assert_eq!(max_supply - (total_supply + amt) >= 0 as u128, true);
+
+
+        let balances_of_inscribe = self.balances.get_mut(&InscribeIndexes(inscribe_id)).expect("msg");        
+        // check max amt is reach ?
+        // balances_of_inscribe.insert(to, amt).expect("msg");
+        let amts = balances_of_inscribe.get_mut(&to).expect("msg");
+        *amts = *amts + amt;
+
+
+
+        // check actorid's current amt.
+
+        // let mut cureent_amt = balances_of_inscribe.get_key_value(&to).expect("msg").1.clone();
+        // cureent_amt += amt;           
+        // balances_of_inscribe.update(to, amt);
+        // balances_of_inscribe.to_owned().update(to, amt);
+        // balances_of_in
+
+        // balances_of_inscribe.insert(to, cureent_amt);
+        // let insert = self.balances.get_key_value(&InscribeIndexes(inscribe_id)).expect("msg").1.insert(to, cureent_amt);
+        // let _insert = self.balances.get_mut(&InscribeIndexes(inscribe_id)).expect("msg").insert(to, cureent_amt);
+        // inscribe_of_id.total_supply += amt;
+
+        return true;
+        
     }
 
     pub fn burn(&mut self) {
@@ -168,17 +222,17 @@ impl InscribeIoStates {
         // check amt is <= from: actorid's balance.
         // 
         let mut balances_of_inscribe = self.balances.get_key_value(&InscribeIndexes(inscribe_id)).expect("msg").1.clone();
-        let balance_of_from = balances_of_inscribe.get_key_value(&from).expect("msg").1.clone();
-        assert_eq!(balance_of_from - amt >= 0 as u128, true);
+        // let balance_of_from = balances_of_inscribe.get_key_value(&from).expect("msg").1.clone();
+        // assert_eq!(balance_of_from - amt >= 0 as u128, true);
         // check msg sender is equal from
         // let msg_sender = msg::source();
         assert_eq!(from, msg_sender);
         
         // state.trnsfer(inscribe_id, from, to, amt);
-        let new_balance_of_from = balance_of_from - amt;
+        // let new_balance_of_from = balance_of_from - amt;
         // let new_balance_of_to = amt;
-        balances_of_inscribe.insert(from, new_balance_of_from);
-        balances_of_inscribe.insert(to, amt);
+        // balances_of_inscribe.insert(from, new_balance_of_from);
+        // balances_of_inscribe.insert(to, amt);
         
 
         // todo!()
@@ -243,7 +297,7 @@ pub enum Action {
     Mint {
         // inscribe_id: which inscribe
         inscribe_id: u128,
-        to: ActorId
+        // to: ActorId
     },
 
     Burn {
@@ -350,9 +404,9 @@ pub enum Event {
 
 #[derive(Debug, Clone, Encode, Decode, TypeInfo)]
 pub enum Query {
-    // All,
+    All,
 
-    // Inscribes,
+    QueryInscribe(u128),
     // InscribeInfoByIndex(u128),
     // InscribesOfActorId,
     // BalanceOf(ActorId, u128),
@@ -383,8 +437,9 @@ pub enum Query {
 
 #[derive(Encode, Decode, TypeInfo)]
 pub enum Reply {
-    All(),
-    Inscribes(u128),
+    All(InscribeIoStates),
+    ReplyInscribe(Inscribe),
+
     InscribeInfoByIndex(Inscribe),
     InscribesOfActorId(ActorId),
     // retrun balance of address Inscribes amount.
