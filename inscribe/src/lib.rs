@@ -2,8 +2,8 @@
 
 use core::u128;
 
-use gstd::{collections::BTreeMap,ActorId, ToOwned, exec, msg::{self, value}, prelude::*, Value};
-use inscribe_io::{Query, Reply, Action, Event, InscribeIoStates, Inscribe, VerifyStatus, InscribeIndexes, OrderId, Order, OrderStatus, Balances};
+use gstd::{collections::BTreeMap,ActorId, ToOwned, exec, msg::{self}, prelude::*};
+use inscribe_io::{Query, Reply, Action, Event, InscribeIoStates, Inscribe, VerifyStatus, InscribeIndexes, OrderId, Order, OrderStatus, MintTimes };
 
 static mut INSCRIBEIOSTATES: Option<InscribeIoStates> = None;
 static mut INSCRIBEINDEXES: Option<InscribeIndexes> = None;
@@ -25,6 +25,16 @@ extern "C" fn init() {
     // let Indexes = unsafe { INSCRIBEINDEXES.as_mut().expect("failed to init Indexes") };
     let state = unsafe { INSCRIBEIOSTATES.as_mut().expect("failed to get state as mut") };
 
+    // need init ...
+    // pub inscribe_indexes: BTreeMap<InscribeIndexes, Inscribe>,
+    // pub balances: BTreeMap<InscribeIndexes, BTreeMap<ActorId, u128>>,
+    // pub totalsupply: BTreeMap<InscribeIndexes,u128>,
+    // pub inscribes_minted: BTreeMap<ActorId, BTreeMap<u64, Inscribe>>,
+    // pub inscribes: BTreeMap<ActorId, BTreeMap<u64, Inscribe>>,
+    // pub mint_times: BTreeMap<InscribeIndexes, MintTimes>,
+    // pub all_orders: BTreeMap<OrderId, Order>,
+    // pub orders_of_actorid: BTreeMap<ActorId, BTreeMap<OrderId, Order>>,
+
     state.inscribe_indexes.insert(inscribe_io::InscribeIndexes(1), 
     Inscribe { 
         inscribe_type: inscribe_io::InscribeType::Organization, 
@@ -45,9 +55,30 @@ extern "C" fn init() {
     });
     let id = msg::source();
     let amt:u128 = 1000;
-    let mut map: BTreeMap<ActorId, u128> = BTreeMap::new();
-    map.insert(id, amt);
-    state.balances.insert(InscribeIndexes(1), map);
+
+    // pub balances: BTreeMap<InscribeIndexes, BTreeMap<ActorId, u128>>,
+
+    let mut map_balances: BTreeMap<ActorId, u128> = BTreeMap::new();
+    map_balances.insert(id, amt);
+    state.balances.insert(InscribeIndexes(1), map_balances);
+
+    // pub totalsupply: BTreeMap<InscribeIndexes,u128>,
+    let mut map_totalsupply: BTreeMap<InscribeIndexes, u128> = BTreeMap::new();
+
+    // pub inscribes_minted: BTreeMap<ActorId, BTreeMap<u64, Inscribe>>,
+    let mut map_actorid_inscribe: BTreeMap<ActorId, BTreeMap<u64, Inscribe>> = BTreeMap::new();
+
+    // pub inscribes: BTreeMap<ActorId, BTreeMap<u64, Inscribe>>,
+    let mut map_inscribes: BTreeMap<ActorId, BTreeMap<u64, InscribeIndexes>> = BTreeMap::new();
+
+    // pub mint_times: BTreeMap<InscribeIndexes, MintTimes>,
+    let mut map_mint_times: BTreeMap<InscribeIndexes, MintTimes> = BTreeMap::new();
+
+    // pub all_orders: BTreeMap<OrderId, Order>,
+    let mut map_all_orders: BTreeMap<OrderId, Order> = BTreeMap::new();
+
+    // pub orders_of_actorid: BTreeMap<ActorId, BTreeMap<OrderId, Order>>,
+    let mut map_actorid_order: BTreeMap<ActorId, BTreeMap<OrderId, Order>> = BTreeMap::new();
 
 }
 

@@ -1,5 +1,5 @@
 #![no_std]
-use core::usize;
+// use core::usize;
 use codec::{Decode, Encode};
 use gstd::{collections::BTreeMap, MessageId, prelude::*, ActorId};
 use scale_info::TypeInfo;
@@ -14,17 +14,11 @@ pub struct Order {
     pub order_status: OrderStatus,
 }
 
-#[derive(Default, Debug, Encode, Decode, PartialEq, Eq, PartialOrd, Ord, Clone, TypeInfo, Hash)]
-pub struct Balances {
-    pub balance: BTreeMap<ActorId, u128>
-}
-
-// impl Balances {
-//     pub fn update(&mut self, id:ActorId, balances:u128) -> Balances{
-//         self.balance.insert(id, balances);
-//     }
-    
+// #[derive(Default, Debug, Encode, Decode, PartialEq, Eq, PartialOrd, Ord, Clone, TypeInfo, Hash)]
+// pub struct Balances {
+//     pub balance: BTreeMap<ActorId, u128>
 // }
+
 
 #[derive(Default, Debug, Encode, Decode, PartialEq, Eq, PartialOrd, Ord, Clone, TypeInfo, Hash)]
 pub enum OrderStatus {
@@ -127,8 +121,14 @@ impl InscribeIoStates {
     }
 
     pub fn insert_order_to_all_orders(&mut self, id: OrderId, order: Order) -> bool {
+        if self.all_orders.is_empty() != true {
+            self.all_orders.insert(id, order);
+        }
+        else {
+            // init
+            let mut _all_orders:BTreeMap<OrderId,Order> = BTreeMap::new();
 
-        self.all_orders.insert(id, order);
+        }
 
         return true;
     }
@@ -239,7 +239,14 @@ impl InscribeIoStates {
     }
 
     pub fn list_sell_order(&mut self) {
-        todo!()
+        // let is_empty = self.all_orders.is_empty();
+        // if is_empty == true {
+        //     let mut all_orders:BTreeMap<OrderId,Order> = BTreeMap::new();
+
+        // }
+        // // todo!()
+        // let key = OrderId(());
+        // self.all_orders.insert(key, Order { seller: (), inscribe_id: (), amt: (), price: (), order_status: () });
     }
 
     pub fn cancele_sell_order(&mut self) {
