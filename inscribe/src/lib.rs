@@ -274,11 +274,12 @@ extern "C" fn handle() {
         
         Action::FillSellOrder { orderid } => {
             // check orderid is exsiting
-            let is_order_exsiting = state.all_orders.contains_key(orderid);
+            let is_order_exsiting = state.all_orders.contains_key(&OrderId(orderid));
             assert_eq!(true, is_order_exsiting);
             // read order
-            let order = state.all_orders.get_key_value(orderid).expect("msg").clone().1;
+            let order = state.all_orders.get_key_value(&OrderId(orderid)).expect("msg").1.clone();
             // decode Order info.
+            let index = order.inscribe_id.clone();
             let amt = order.amt.clone();
             let creator = order.creater.clone();
             let price = order.price.clone();
@@ -286,26 +287,68 @@ extern "C" fn handle() {
             assert_eq!(order_type, OrderType::LimitSell);
 
             // check actorid: msg::souce() is have this inscribe, and amt is >= order amt
-
-            // transfer inscribe to buyer of order
+            let user = msg::source();
+            let is_have_this_inscribe = state.check_amt_of_user(index.0, user, amt);
+            assert_eq!(is_have_this_inscribe, true);
+            
             // update infos in states of this inscribe
+            let amt_of_buyer = state.balances_map(index.0).get_key_value(&creator).expect("get buyer's inscribe amt error").1.clone();
+            let buyer_new_amt = amt_of_buyer + amt;
+            state.update_amt_index_id(index.0, creator, buyer_new_amt);
+
+            let amt_of_seller = state.balances_map(index.0).get_key_value(&user).expect("get seller's inscibe amt error").1.clone();
+            let seller_new_amt = amt_of_seller - amt;
+            state.update_amt_index_id(index.0, user, seller_new_amt);
+
+
             // update order type info 
+            // order.order_status = OrderStatus::Successed;
+            let mut od = order.clone();
+            od.order_status = OrderStatus::Successed;
+            state.update_order_status(orderid, od.clone());
 
             // event of sell action.
+
+            // Event::
         },
         Action::CanceleSellOrder { orderid } => {
             // check orderid
+            let is_order_exsiting = state.check_order_id_exsiting(orderid);
+            assert_eq!(is_order_exsiting, true);
             // check order's status
+            let order = state.all_orders.get_key_value(&OrderId(orderid)).expect("msg").1.clone();
+
+
+            assert_eq!(order.order_status.clone(), OrderStatus::Listed);
             // some action to cancele
-            todo!()
+            let index = order.inscribe_id.clone();
+            let user_amt = state.balances_map(index.0).get_key_value(&order.creater).expect("msg").1.clone();
+            state.update_amt_index_id(index.0, order.creater.clone(), user_amt + order.amt);
+
+            // update order status
+            let mut od = order.clone();
+            od.order_status = OrderStatus::Canceled;
+            let is_update_sucess = state.update_order_status(orderid, od.clone());
+            assert_eq!(is_update_sucess, true);
         },
         Action::CanceleBuyOrder { orderid } => {
             // check orderid
+            let is_order_existing = state.check_order_id_exsiting(orderid);
+            assert_eq!(is_order_existing, true);
+
             // check order's status
-            // some action to cancele
+            let mut order = state.all_orders.get_key_value(&OrderId(orderid)).expect("msg").1.clone();
+            assert_eq!(order.order_status, OrderStatus::Listed);
 
+            // let index = order.inscribe_id;
+            let price = order.price.clone();
+            let refund = msg::send(order.creater, "CancelBuyOrder", price).expect("msg");
 
-            todo!()
+            // update order status
+            order.order_status = OrderStatus::Canceled;
+            let is_update_sucess = state.update_order_status(orderid, order);
+            assert_eq!(is_update_sucess, true);
+
         },
         Action::UpdateInscribe { inscribe_id, inscribedata } => {
             // check msg.value.
