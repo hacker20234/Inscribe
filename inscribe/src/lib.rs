@@ -3,7 +3,7 @@
 use core::u128;
 
 use gstd::{collections::BTreeMap,ActorId, ToOwned, exec, msg::{self}, prelude::*};
-use inscribe_io::{Query, Reply, Action, Event, InscribeIoStates, Inscribe, VerifyStatus, InscribeIndexes, OrderId, Order, OrderStatus, MintTimes };
+use inscribe_io::{Query, Reply, Action, Event, InscribeIoStates, Inscribe, VerifyStatus, InscribeIndexes, OrderId, Order, OrderStatus, MintTimes, OrderType };
 
 static mut INSCRIBEIOSTATES: Option<InscribeIoStates> = None;
 static mut INSCRIBEINDEXES: Option<InscribeIndexes> = None;
@@ -64,21 +64,28 @@ extern "C" fn init() {
 
     // pub totalsupply: BTreeMap<InscribeIndexes,u128>,
     let mut map_totalsupply: BTreeMap<InscribeIndexes, u128> = BTreeMap::new();
+    state.totalsupply = map_totalsupply;
 
     // pub inscribes_minted: BTreeMap<ActorId, BTreeMap<u64, Inscribe>>,
     let mut map_actorid_inscribe: BTreeMap<ActorId, BTreeMap<u64, Inscribe>> = BTreeMap::new();
+    state.inscribes_minted = map_actorid_inscribe;
 
     // pub inscribes: BTreeMap<ActorId, BTreeMap<u64, Inscribe>>,
+    let mut actors_inscribe: BTreeMap<u64, InscribeIndexes>;
     let mut map_inscribes: BTreeMap<ActorId, BTreeMap<u64, InscribeIndexes>> = BTreeMap::new();
+    state.inscribes = map_inscribes;
 
     // pub mint_times: BTreeMap<InscribeIndexes, MintTimes>,
     let mut map_mint_times: BTreeMap<InscribeIndexes, MintTimes> = BTreeMap::new();
+    state.mint_times = map_mint_times;
 
     // pub all_orders: BTreeMap<OrderId, Order>,
     let mut map_all_orders: BTreeMap<OrderId, Order> = BTreeMap::new();
+    state.all_orders = map_all_orders;
 
     // pub orders_of_actorid: BTreeMap<ActorId, BTreeMap<OrderId, Order>>,
     let mut map_actorid_order: BTreeMap<ActorId, BTreeMap<OrderId, Order>> = BTreeMap::new();
+    state.orders_of_actorid = map_actorid_order;
 
 }
 
@@ -138,80 +145,61 @@ extern "C" fn handle() {
         Action::Burn { inscribe_id, from, to, amt  } => {
             // check inscribe_id is exsiting.
             assert_eq!(state.inscribe_indexes.contains_key(&InscribeIndexes(inscribe_id)), true);
-            let mut balances_of_inscribe = state.balances.get_key_value(&InscribeIndexes(inscribe_id)).expect("msg").1.clone();
-            let mut inscribe_of_id = state.inscribe_indexes.get_key_value(&InscribeIndexes(inscribe_id)).expect("msg").1.clone();
+            let balances = state.balances.get_key_value(&InscribeIndexes(inscribe_id)).expect("msg").1.clone();
+            // get balance from & to and clone it
+            let balance_from = balances.get_key_value(&from).expect("msg").1.clone();
+            let balance_to = balances.get_key_value(&to).expect("msg").1.clone();
+
+            let inscribe_of_id = state.inscribe_indexes.get_key_value(&InscribeIndexes(inscribe_id)).expect("msg").1.clone();
             let max_supply = inscribe_of_id.max_supply;
             let total_supply = inscribe_of_id.total_supply;
-            let amt = inscribe_of_id.amt_per_mint;
             // check max amt is reach ?
+            // assert_eq!(max_supply - (total_supply + amt) >= 0 as u128, true);
 
-            assert_eq!(max_supply - (total_supply + amt) >= 0 as u128, true);
+            // update new amt for from and to
+            let is_succes_from = state.update_amt_index_id(inscribe_id, from, balance_from - amt);
+            let is_succes_to = state.update_amt_index_id(inscribe_id, to, balance_to + amt);
 
-            // balances_of_inscribe.insert(from, amt);
-            // inscribe_of_id.total_supply -= amt;
-            // inscribe_of_id
-
-
-
-            // check amt of actorid
-            // check to actorid.
-            todo!()
+            assert_eq!(is_succes_from, is_succes_to);
         },
-        Action::ListSellOrder { seller, inscribe_id, amt, price } => {
+        Action::ListSellOrder { creater, inscribe_id, amt, price } => {
             // check inscribe_id is exsiting.
-            assert_eq!(state.inscribe_indexes.contains_key(&InscribeIndexes(inscribe_id)), true);
+            let is_contain = state.check_inscribe_by_id(inscribe_id);
+            assert_eq!(is_contain, true);
 
-            // check amt of actorid
-            let balances_of_inscribe = state.balances.get_key_value(&InscribeIndexes(inscribe_id)).expect("msg").1.clone();
-            // let mut inscribe_of_id = state.inscribe_indexes.get_key_value(&InscribeIndexes(inscribe_id)).expect("msg").1.clone();
-
-            // let balances_of_seller = balances_of_inscribe.get_key_value(&seller).expect("msg").1.clone();
-            // assert_eq!(balances_of_seller - amt >= 0 as u128, true);
+            let is_amt_ok = state.check_amt_of_user(inscribe_id, creater, amt);
+            assert_eq!(is_amt_ok, true);
 
             let msg_sender = msg::source();
-            assert_eq!(seller, msg_sender);
-            
-            // state.trnsfer(inscribe_id, from, to, amt);
-            // let new_balance_of_seller = balances_of_seller - amt;
+            assert_eq!(creater, msg_sender);            
 
-            let trade_contract = exec::program_id();
-            // let balances_of_trade_contract = balances_of_inscribe.get_key_value(&trade_contract).expect("msg").1.clone();
-            // let new_balance_of_to = amt;
-            // let new_balances_of_trade_contract = balances_of_trade_contract + amt;
+            let market_contract = exec::program_id();
 
-            // transfer something to contract 
-            // update balance of user and contract.
-
-            // balances_of_inscribe.insert(seller, new_balance_of_seller);
-            // balances_of_inscribe.insert(trade_contract, new_balances_of_trade_contract);
-
-            // generate orderid
-            let order_id:OrderId = inscribe_io::OrderId(state.last_order_id().0 + 1);
-            // let orderid:OrderId = order_id;
-
+            let order_id:OrderId = state.get_new_order_id();
 
             // create order info.
             let order_status = OrderStatus::Listed;
             let order = Order {
-                seller,
+                creater,
                 inscribe_id: inscribe_io::InscribeIndexes(inscribe_id),
                 amt,
                 price,
                 order_status,
+                order_type: inscribe_io::OrderType::LimitSell,
             };
 
-            // save infos of order into states.
+            // update && save order info.
+            state.update_order_status(order_id.0, order);
 
-            state.insert_order_to_all_orders(order_id, order);
 
-
-            let _ = msg::reply(Event::ListSellOrder { seller, inscribe_id, amt, price }, 0);
+            let _ = msg::reply(Event::ListSellOrder { creater, inscribe_id, amt, price }, 0);
 
 
         },
-        Action::Buy {  oriderid } => {
+        Action::FillBuyOrder {  oriderid } => {
+            // When Action == FillBuyOrder, Buyer Send vara to contract, contract send vara to Seller. And Contract send Inscribe to Buyer.
             // orderid is existing ?
-            let is_orderid_valid = state.all_orders.contains_key(&OrderId(oriderid));
+            let is_orderid_valid = state.check_order_id_exsiting(oriderid);
             assert_eq!(is_orderid_valid, true);
 
             // check orderid's status,read orderid's info
@@ -221,60 +209,84 @@ extern "C" fn handle() {
             let msg_send_value = msg::value();
             let price = order.price;
 
-            let inscribe_id = order.inscribe_id;
+            let inscribe_id = order.inscribe_id.0;
             let amt = order.amt;
-            let seller = order.seller;
+            let seller = order.creater;
             let buyer = msg::source();
+
+            // get and Check contract id's inscribe amt
+            let contract_amt_ok = state.check_amt_of_user(inscribe_id, exec::program_id(), amt);
+            assert_eq!(contract_amt_ok, true);
 
             // transfer vara check
             assert_eq!(price, msg_send_value);
             let seller_value = msg_send_value - 1000000000000;
 
-            // transfer inscribe to buyer
-            // state.trnsfer(InscribeIndexes(inscribe_id), exec::program_id(), buyer, amt);
-            // let mut balances_of_inscribe = state.balances.get_key_value(&inscribe_id).expect("msg").1.clone();
-            // let balance_of_buyer = balances_of_inscribe.get_key_value(&buyer).expect("msg").1.clone();
-            // let balance_of_trader_contract = balances_of_inscribe.get_key_value(&exec::program_id()).expect("msg").1.clone();
-            // assert_eq!(balance_of_from - amt >= 0 as u128, true);
-            // check msg sender is equal from
-            // let msg_sender = msg::source();
-            assert_eq!(buyer, msg::source());
+            // transfer inscribe to buyer: index, amt, from, to.
+            state.update_amt_index_id(inscribe_id, buyer, amt);
+
+            // update amt : contract address.
+            state.update_amt_index_id(inscribe_id, exec::program_id(), amt);
+            assert_eq!(buyer, msg::source());    
             
-            // state.trnsfer(inscribe_id, from, to, amt);
-            // let new_balance_of_buyer = balance_of_buyer + amt;
-            // let new_balance_of_trader_contract = balance_of_trader_contract - amt;
-            // let new_balance_of_to = amt;
-            // balances_of_inscribe.insert(buyer, new_balance_of_buyer);
-            // balances_of_inscribe.insert(exec::program_id(), new_balance_of_trader_contract);
-    
-            
-            // update order info in states.
+            // update && save order info in states.
             order.order_status = OrderStatus::Successed;
-            state.all_orders.insert(OrderId(oriderid), order.clone());
+
+            // state.all_orders.insert(OrderId(oriderid), order.clone());
+            state.update_order_status(oriderid, order);
 
             // Events of this action
             // we need use reply to send vara to seller
             // let _ = msg::reply("Order Filled {}", msg_send_value);
             let admin = ActorId::from_bs58("1F22iHpizWc2C8vsFtWxy85ne7ucHZzpGs9uX3FSHTzk4Fu".to_owned()).expect("msg");
 
-            let _send = msg::send(seller, "Order filled", seller_value);
-            let _send = msg::send(admin, "fee", 1000000000000);
-
-            // todo!()
+            let _send = msg::send(seller, "Order filled", seller_value).expect("Send Vara Failed");
+            let _send = msg::send(admin, "fee", 1000000000000).expect("Send market fee Failed");
         },
         Action::ListBuyOrder { buyer, inscribe_id, amt, price } => {
             // check inscribe_id is exsiting.
-            // check amt of actorid
-            // transfer vara to contract 
-            // update vara balance of contract.
-            // generate orderid
-            // save infos of order into states.
+            let is_exsiting = state.check_inscribe_by_id(inscribe_id);
+            assert_eq!(true, is_exsiting);
+            // check amt of actorid >= amt of user input.
+            let user = msg::source();
+            let is_amt_ok = state.check_amt_of_user(inscribe_id, user, amt);
+            assert_eq!(true, is_amt_ok);
 
+            // generate orderid
+            let orderid = state.last_order_id();
+
+            let od = Order{
+                creater: msg::source(),
+                inscribe_id: InscribeIndexes(inscribe_id),
+                amt,
+                price,
+                order_status: OrderStatus::Listed,
+                order_type: OrderType::LimitBuy,
+            };
+
+            // check the value of msg sender 
+            assert_eq!(msg::value(), price);
+
+            // save infos of order into states.
+            let update_oder_info = state.update_order_status(orderid, od);
+            assert_eq!(update_oder_info, true);
         },
-        Action::Sell { seller, orderid } => {
+        
+        Action::FillSellOrder { orderid } => {
             // check orderid is exsiting
-            // read order's info
-            // check actorid is have this inscribe, and amt is >= order amt
+            let is_order_exsiting = state.all_orders.contains_key(orderid);
+            assert_eq!(true, is_order_exsiting);
+            // read order
+            let order = state.all_orders.get_key_value(orderid).expect("msg").clone().1;
+            // decode Order info.
+            let amt = order.amt.clone();
+            let creator = order.creater.clone();
+            let price = order.price.clone();
+            let order_type = order.order_type.clone();
+            assert_eq!(order_type, OrderType::LimitSell);
+
+            // check actorid: msg::souce() is have this inscribe, and amt is >= order amt
+
             // transfer inscribe to buyer of order
             // update infos in states of this inscribe
             // update order type info 
@@ -354,6 +366,14 @@ extern "C" fn state() {
         Query::All => {
             Reply::All(state.clone())
         },
+        Query::QueryInscribeByActorId(index, s58address) => {
+            let actor_amt_map = state.balances.get_key_value(&InscribeIndexes(index)).expect("msg").1.clone();
+            let actor: ActorId = ActorId::from_bs58(s58address).expect("get actorid from s58address meet error, please check");
+
+            let amt = actor_amt_map.get_key_value(&actor).expect("msg").1.clone();
+            Reply::ReplyInscribeByActorId(amt)
+        },
+            
         // Query::Inscribes => Reply::Inscribes(100),
         // Query::InscribesOfActorId => Reply::InscribesOfActorId(ActorId::from_bs58("16CkY8WrzVREYNSvMJKd1nLQ2S8bjGbhoYCE95thV2CqSSXX".to_owned()).expect("msg")),
         // Query::BalanceOf(_, _) => todo!(),
