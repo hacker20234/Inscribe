@@ -1,5 +1,6 @@
 #![no_std]
 
+// use alloc::collections::btree_map::Entry;
 // use core::usize;
 use codec::{Decode, Encode};
 use gstd::{collections::BTreeMap, MessageId, prelude::*, ActorId};
@@ -8,18 +9,13 @@ use gmeta::{InOut, Metadata};
 
 #[derive(Default, Debug, Encode, Decode, PartialEq, Eq, PartialOrd, Ord, Clone, TypeInfo, Hash)]
 pub struct Order {
-    pub creater: ActorId,
+    pub creator: ActorId,
     pub inscribe_id: InscribeIndexes,
     pub amt: u128,
     pub price: u128,
     pub order_status: OrderStatus,
     pub order_type: OrderType,
 }
-
-// #[derive(Default, Debug, Encode, Decode, PartialEq, Eq, PartialOrd, Ord, Clone, TypeInfo, Hash)]
-// pub struct Balances {
-//     pub balance: BTreeMap<ActorId, u128>
-// }
 
 
 #[derive(Default, Debug, Encode, Decode, PartialEq, Eq, PartialOrd, Ord, Clone, TypeInfo, Hash)]
@@ -39,8 +35,6 @@ pub enum OrderType {
     LimitSell,
     LimitBuy,    
 }
-
-
 
 
 #[derive(Default, Debug, Encode, Decode, PartialEq, Eq, PartialOrd, Ord, Clone, TypeInfo, Hash, Copy)]
@@ -108,7 +102,7 @@ pub struct Inscribe{
 #[derive(Clone, Default, Encode, Decode, TypeInfo)]
 pub struct InscribeIoStates {
     // inscribe
-    pub inscribe_indexes: BTreeMap<InscribeIndexes, Inscribe>,
+    pub map_inscribes: BTreeMap<InscribeIndexes, Inscribe>,
     pub balances: BTreeMap<InscribeIndexes, BTreeMap<ActorId, u128>>,
     pub totalsupply: BTreeMap<InscribeIndexes,u128>,
     pub inscribes_minted: BTreeMap<ActorId, BTreeMap<u64, Inscribe>>,
@@ -121,7 +115,7 @@ pub struct InscribeIoStates {
 
 impl InscribeIoStates {
     pub fn total_inscribes(&mut self) ->u128 {
-        let inscribes = self.inscribe_indexes.last_key_value().expect("Get last key occurs erros").clone();
+        let inscribes = self.map_inscribes.last_key_value().expect("Get last key occurs erros").clone();
         let total = inscribes.0.0;
         return total;
     } 
@@ -131,9 +125,23 @@ impl InscribeIoStates {
     }
 
     pub fn check_inscribe_by_id(&mut self, index: u128) -> bool {
-        let is_contain = self.inscribe_indexes.contains_key(&InscribeIndexes(index));
+        let is_contain = self.map_inscribes.contains_key(&InscribeIndexes(index));
 
         return is_contain;        
+    }
+
+    pub fn get_total_supply(&mut self, index: u128) -> u128{
+        let total_supply = self.totalsupply.get_key_value(&InscribeIndexes(index)).expect("msg").1.clone();
+
+        return total_supply;        
+    }
+
+    pub fn update_totalsupply(&mut self, index: u128, total: u128) -> bool {
+        // let oldsupply = self.totalsupply.get_key_value(&InscribeIndexes(index)).expect("get totalsupply error").1.clone();
+        let update = self.totalsupply.get_mut(&InscribeIndexes(index)).expect("msg");
+        *update = total;
+
+        return true;
     }
 
     pub fn balances_map(&mut self, index: u128) -> BTreeMap<ActorId, u128> {
@@ -153,7 +161,7 @@ impl InscribeIoStates {
     }
 
     pub fn inscribe_of_index(&mut self, index: u128) -> Inscribe {
-        let inscribe = self.inscribe_indexes.get_key_value(&InscribeIndexes(index)).expect("msg").1.clone();
+        let inscribe = self.map_inscribes.get_key_value(&InscribeIndexes(index)).expect("msg").1.clone();
 
         return inscribe;
     }
@@ -184,7 +192,7 @@ impl InscribeIoStates {
         inscribe_data.inscribe_state = InscribeState::MintStart;
         inscribe_data.total_supply = 0;
         inscribe_data.inscribe_index = index;
-        self.inscribe_indexes.insert(InscribeIndexes(index), inscribe_data);
+        self.map_inscribes.insert(InscribeIndexes(index), inscribe_data);
 
         // init balances for store......
         let amt:u128 = 0;
@@ -201,7 +209,7 @@ impl InscribeIoStates {
     }
 
     pub fn check_last_inscribe_indexes(&mut self) -> InscribeIndexes{
-        let last_inscribe_indexes = self.inscribe_indexes.last_key_value().expect("check inscribe indexed error").0.to_owned();
+        let last_inscribe_indexes = self.map_inscribes.last_key_value().expect("check inscribe indexed error").0.to_owned();
         return last_inscribe_indexes;
     }
 
@@ -213,8 +221,8 @@ impl InscribeIoStates {
 
     pub fn mint(&mut self, inscribe_id: u128, to: ActorId) -> bool {
         // check inscribe_id is exsiting.
-        assert_eq!(self.inscribe_indexes.contains_key(&InscribeIndexes(inscribe_id)), true);
-        let inscribe = self.inscribe_indexes.get_key_value(&InscribeIndexes(inscribe_id)).expect("msg").1.clone();
+        assert_eq!(self.map_inscribes.contains_key(&InscribeIndexes(inscribe_id)), true);
+        let inscribe = self.map_inscribes.get_key_value(&InscribeIndexes(inscribe_id)).expect("msg").1.clone();
         let max_supply = inscribe.max_supply;
         let total_supply = inscribe.total_supply;
         let amt = inscribe.amt_per_mint;
@@ -231,12 +239,12 @@ impl InscribeIoStates {
         
     }
 
-    pub fn burn(&mut self) {
-        todo!()
-    }
+    // pub fn burn(&mut self) {
+    //     todo!()
+    // }
 
     pub fn trnsfer(&mut self, inscribe_id: u128, from: ActorId, to: ActorId, amt: u128, msg_sender: ActorId) {
-        assert_eq!(self.inscribe_indexes.contains_key(&InscribeIndexes(inscribe_id)), true);
+        assert_eq!(self.map_inscribes.contains_key(&InscribeIndexes(inscribe_id)), true);
         let balances_of_inscribe = self.balances.get_mut(&InscribeIndexes(inscribe_id)).expect("msg").clone();        
         let amts_from = balances_of_inscribe.get_key_value(&from).expect("msg").1.clone();
         self.update_amt_index_id(inscribe_id, from, amts_from - amt);
@@ -252,11 +260,13 @@ impl InscribeIoStates {
             let amts = inscribe_balance.get_mut(&id).expect("msg");
             *amts = *amts + amt;   
         } else {
-            inscribe_balance.insert(id, amt);
+            let _ = inscribe_balance.insert(id, amt).expect("insert action get error.");
         }
+
         return true;
     }
 
+    // pub fn insert_
     pub fn update_order_status(&mut self, orderid: u128, order: Order) -> bool {
         // check order is exsiting && call this function to update Order Status.
         let _order = self.all_orders.get_mut(&OrderId(orderid)).expect("get all orders occurs errors");
@@ -265,57 +275,31 @@ impl InscribeIoStates {
         return true;
     }
 
-    pub fn get_new_order_id(&mut self) -> OrderId {
+    pub fn get_new_order_id(&mut self) -> u128 {
 
         let id = self.all_orders.last_key_value().expect("get last order id occurs error").0.clone();
-        return id;
+        return id.0 + 1;
     }
 
-    pub fn list_sell_order(&mut self) {
-        // let is_empty = self.all_orders.is_empty();
-        // if is_empty == true {
-        //     let mut all_orders:BTreeMap<OrderId,Order> = BTreeMap::new();
+    pub fn get_order(&mut self, id: u128) -> Order{
+        let order = self.all_orders.get_key_value(&OrderId(id)).expect("get order action error").1.clone();
 
-        // }
-        // // todo!()
-        // let key = OrderId(());
-        // self.all_orders.insert(key, Order { seller: (), inscribe_id: (), amt: (), price: (), order_status: () });
+        return order;
     }
 
-    pub fn cancel_sell_order(&mut self) {
-        todo!()
-    }
-
-    pub fn list_buy_order(&mut self) {
-        todo!()
-
-    }
-
-    pub fn cancel_buy_order(&mut self){
-        todo!()
-    }
-
-    pub fn buy(&mut self){
-        todo!()
-    }
-
-    pub fn sell(&mut self) {
-        todo!()
-    }
 
     pub fn update_inscribe(&mut self, index: u128, new_inscribe_data: Inscribe) -> bool {
-        self.inscribe_indexes.insert(InscribeIndexes(index), new_inscribe_data);
+        self.map_inscribes.insert(InscribeIndexes(index), new_inscribe_data);
         return true;
-        // todo!()
     }
 
     pub fn verify_status(&mut self, inscribe_id: u128, msg_sender: ActorId, verifystatus:VerifyStatus) -> bool {
-        assert_eq!(self.inscribe_indexes.contains_key(&InscribeIndexes(inscribe_id)), true);
+        assert_eq!(self.map_inscribes.contains_key(&InscribeIndexes(inscribe_id)), true);
         // check msg sender is admin
         let admin = ActorId::from_bs58("1F22iHpizWc2C8vsFtWxy85ne7ucHZzpGs9uX3FSHTzk4Fu".to_owned()).expect("msg");
         // let msg_sender = msg::source();
         assert_eq!(admin, msg_sender);
-        let mut new_inscribe_data: Inscribe = self.inscribe_indexes.get_key_value(&InscribeIndexes(inscribe_id)).expect("msg").1.clone();
+        let mut new_inscribe_data: Inscribe = self.map_inscribes.get_key_value(&InscribeIndexes(inscribe_id)).expect("msg").1.clone();
         new_inscribe_data.verify = verifystatus.clone();
 
         self.update_inscribe(inscribe_id, new_inscribe_data);
@@ -352,14 +336,16 @@ pub enum Action {
         to: ActorId,
         amt: u128,
     },
-    ListSellOrder {
-        creater: ActorId,
+    ListOrder {
+        // index: OrderId,
+        // creator: ActorId,
         inscribe_id: u128,
         amt: u128,
         price: u128,
+        ordertype: OrderType,
     },
 
-    CanceleSellOrder {
+    CancelSellOrder {
         orderid: u128,
     },
 
@@ -369,13 +355,14 @@ pub enum Action {
     },
 
     ListBuyOrder {
-        buyer: ActorId,
+        index: OrderId,
+        creator: ActorId,
         inscribe_id: u128,
         amt: u128,
         price: u128,
     },
 
-    CanceleBuyOrder {
+    CancelBuyOrder {
         orderid: u128,
     },
 
@@ -419,7 +406,7 @@ pub enum Event {
         _amount: u128
     },
     ListSellOrder {
-        creater:ActorId, 
+        creator:ActorId, 
         inscribe_id: u128,
         amt: u128,
         price:u128,
@@ -444,6 +431,7 @@ pub enum Query {
 
     QueryInscribe(u128),
     QueryInscribeByActorId(u128, String),
+    QueryOrderById(u128),
     // InscribeInfoByIndex(u128),
     // InscribesOfActorId,
     // BalanceOf(ActorId, u128),
@@ -477,6 +465,7 @@ pub enum Reply {
     All(InscribeIoStates),
     ReplyInscribe(Inscribe),
     ReplyInscribeByActorId(u128),
+    ReplyOrderById(Order),
 
     InscribeInfoByIndex(Inscribe),
     InscribesOfActorId(ActorId),
