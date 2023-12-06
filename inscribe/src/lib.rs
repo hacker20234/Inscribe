@@ -3,43 +3,65 @@
 use core::u128;
 
 use gstd::{collections::BTreeMap,ActorId, ToOwned, exec, msg::{self}, prelude::*};
-use inscribe_io::{Query, Reply, Action, Event, InscribeIoStates, Inscribe, VerifyStatus, InscribeIndexes, OrderId, Order, OrderStatus, MintTimes, OrderType };
+// use gstd::collections::btree_map::Entry;
+use inscribe_io::{Query, Reply, Action, Event, InscribeIoStates, Inscribe, VerifyStatus, InscribeIndexes, OrderId, Order, OrderStatus, OrderType };
 // static mut map_inscribes: 
-static mut ORDER: Option<Order> = None;
-static mut ORDER_STATUS: Option<OrderStatus> = None;
-static mut ORDER_TYPE: Option<OrderType> = None;
-static mut ORDERID: Option<OrderId> = None;
-static mut INSCRIBE: Option<Inscribe> = None;
+// static mut ORDER: Option<Order> = None;
+// static mut ORDER_STATUS: Option<OrderStatus> = None;
+// static mut ORDER_TYPE: Option<OrderType> = None;
+// static mut ORDERID: Option<OrderId> = None;
+// static mut INSCRIBE: Option<Inscribe> = None;
 
 static mut INSCRIBEIOSTATES: Option<InscribeIoStates> = None;
-static mut INSCRIBEINDEXES: Option<InscribeIndexes> = None;
+// static mut INSCRIBEINDEXES: Option<InscribeIndexes> = None;
+
+// static mut MAP_INSCRIBES: Option<BTreeMap<InscribeIndexes, Inscribe>> = None;
+// static mut BALANCES: Option<BTreeMap<InscribeIndexes, BTreeMap<ActorId, u128>>> = None;
+// static mut TOTALSUPPLY: Option<BTreeMap<InscribeIndexes,u128>> = None;
+// static mut INSCRIBES_MINTED: Option<BTreeMap<ActorId, BTreeMap<u64, Inscribe>>> = None;
+// static mut INSCRIBES: Option<BTreeMap<ActorId, BTreeMap<u64, InscribeIndexes>>> = None;
+// // static mut MINT_TIMES: Option<BTreeMap<InscribeIndexes, MintTimes>> = None;
+// static mut ALL_ORDERS: Option<BTreeMap<OrderId, Order>> = None;
+// static mut ORDERS_OF_ACTORID: Option<BTreeMap<ActorId, BTreeMap<OrderId, Order>>> = None;
+
+
+
+// static mut VERIFICATION_STAGES: Option<HashMap<ActorId, VerificationStage>> = None;
+//     VERIFICATION_STAGES = Some(HashMap::new());
+// static mut BALANCES: BTreeMap<InscribeIndexes, BTreeMap<ActorId, u128>> = None;
+
+
+// static mut PROOF_DATA: Option<HashMap<ActorId, Vec<u8>>> = None;
+
+// #[no_mangle]
+// unsafe extern "C" fn init() {
+//     PROOF_DATA = Some(HashMap::new());
+// }
 
 #[no_mangle]
 extern "C" fn init() {
-    unsafe { ORDER_STATUS = Some(OrderStatus::default()) };
-    unsafe { ORDER_TYPE = Some(OrderType::default()) };
-    unsafe { ORDERID = Some(OrderId::default()) };
-    unsafe { ORDER = Some(Order::default()) };
-    unsafe { INSCRIBE = Some(Inscribe::default()) };
-    unsafe { INSCRIBEINDEXES = Some(InscribeIndexes::default()) };
+    // unsafe { MAP_INSCRIBES = Some(BTreeMap::new()) };
+    // unsafe { BALANCES = Some(BTreeMap::new())};
+    // unsafe { TOTALSUPPLY = Some(BTreeMap::new()) };
+    // unsafe { INSCRIBES_MINTED = Some(BTreeMap::new()) };
+    // unsafe { INSCRIBES = Some(BTreeMap::new()) };
+    // // unsafe { MINT_TIMES = Some(BTreeMap::new()) };
+    // unsafe { ALL_ORDERS = Some(BTreeMap::new()) };
+    // unsafe { ORDERS_OF_ACTORID = Some(BTreeMap::new()) };
+
+
+    // unsafe { ORDER_STATUS = Some(OrderStatus::default()) };
+    // unsafe { ORDER_TYPE = Some(OrderType::default()) };
+    // unsafe { ORDERID = Some(OrderId::default()) };
+    // unsafe { ORDER = Some(Order::default()) };
+    // unsafe { INSCRIBE = Some(Inscribe::default()) };
+    // unsafe { INSCRIBEINDEXES = Some(InscribeIndexes::default()) };
     unsafe { INSCRIBEIOSTATES = Some(InscribeIoStates::default()) };
 
 
-    // let Indexes = unsafe { INSCRIBEINDEXES.as_mut().expect("failed to init Indexes") };
     let state = unsafe { INSCRIBEIOSTATES.as_mut().expect("failed to get state as mut") };
 
-    // need init ...
-    // pub inscribe_indexes: BTreeMap<InscribeIndexes, Inscribe>,
-    // pub balances: BTreeMap<InscribeIndexes, BTreeMap<ActorId, u128>>,
-    // pub totalsupply: BTreeMap<InscribeIndexes,u128>,
-    // pub inscribes_minted: BTreeMap<ActorId, BTreeMap<u64, Inscribe>>,
-    // pub inscribes: BTreeMap<ActorId, BTreeMap<u64, Inscribe>>,
-    // pub mint_times: BTreeMap<InscribeIndexes, MintTimes>,
-    // pub all_orders: BTreeMap<OrderId, Order>,
-    // pub orders_of_actorid: BTreeMap<ActorId, BTreeMap<OrderId, Order>>,
-
-    state.map_inscribes.insert(inscribe_io::InscribeIndexes(1), 
-    Inscribe { 
+    let inscribe_init = Inscribe { 
         inscribe_type: inscribe_io::InscribeType::Organization, 
         inscribe_index: 1, 
         deployer: msg::source(), 
@@ -55,43 +77,42 @@ extern "C" fn init() {
         frame: "https://ipfs.io/frame".to_owned(), 
         decimals: 0, 
         inscribe_state: inscribe_io::InscribeState::MintStart 
-    });
+    };
 
-    let id = msg::source();
-    let amt:u128 = 1000;
+    state.map_inscribes.insert(inscribe_io::InscribeIndexes(1), inscribe_init.clone());
 
     // pub balances: BTreeMap<InscribeIndexes, BTreeMap<ActorId, u128>>,
+    let mut balance_inner_map = BTreeMap::new();
+    balance_inner_map.insert(msg::source(), 0);
+    state.balances.insert(InscribeIndexes(1), balance_inner_map);
 
-    let mut map_balances: BTreeMap<ActorId, u128> = BTreeMap::new();
-    // state.map_inscribes
-    map_balances.insert(id, amt);
-    state.balances.insert(InscribeIndexes(1), map_balances);
 
     // pub totalsupply: BTreeMap<InscribeIndexes,u128>,
-    let mut map_totalsupply: BTreeMap<InscribeIndexes, u128> = BTreeMap::new();
-    state.totalsupply = map_totalsupply;
+    state.totalsupply.insert(InscribeIndexes(1), 0);
 
     // pub inscribes_minted: BTreeMap<ActorId, BTreeMap<u64, Inscribe>>,
-    let mut map_actorid_inscribe: BTreeMap<ActorId, BTreeMap<u64, Inscribe>> = BTreeMap::new();
-    state.inscribes_minted = map_actorid_inscribe;
+    let mut actors_insc_inner_map:BTreeMap<u64, Inscribe> = BTreeMap::new();
+    actors_insc_inner_map.insert(1, inscribe_init.clone());
+    state.inscribes_minted.insert(msg::source(), actors_insc_inner_map);
 
     // pub inscribes: BTreeMap<ActorId, BTreeMap<u64, Inscribe>>,
-    let mut actors_inscribe: BTreeMap<u64, InscribeIndexes>;
-    let mut map_inscribes: BTreeMap<ActorId, BTreeMap<u64, InscribeIndexes>> = BTreeMap::new();
-    state.inscribes = map_inscribes;
+    let mut inscribes_inner_map:BTreeMap<u64, Inscribe> = BTreeMap::new();
+    inscribes_inner_map.insert(1, inscribe_init.clone());
+    state.inscribes.insert(msg::source(), inscribes_inner_map);
 
     // pub mint_times: BTreeMap<InscribeIndexes, MintTimes>,
-    let mut map_mint_times: BTreeMap<InscribeIndexes, MintTimes> = BTreeMap::new();
-    state.mint_times = map_mint_times;
+    let mut actor_mint_times:BTreeMap<ActorId, u64> = BTreeMap::new();
+    actor_mint_times.insert(msg::source(), 0);
+    state.mint_times.insert(InscribeIndexes(1), actor_mint_times);
 
     // pub all_orders: BTreeMap<OrderId, Order>,
     let order: Order = Order { creator:msg::source(), inscribe_id:InscribeIndexes(1), amt: 1, price:1, order_status:OrderStatus::Canceled, order_type: OrderType::LimitBuy };
-    state.all_orders.insert(OrderId(1), order);
-    // state.all_orders.pop_last();
+    state.all_orders.insert(OrderId(1), order.clone());
 
     // pub orders_of_actorid: BTreeMap<ActorId, BTreeMap<OrderId, Order>>,
-    let mut map_actorid_order: BTreeMap<ActorId, BTreeMap<OrderId, Order>> = BTreeMap::new();
-    state.orders_of_actorid = map_actorid_order;
+    let mut user_order_inner_map:BTreeMap<OrderId, Order> = BTreeMap::new();
+    user_order_inner_map.insert(OrderId(1), order.clone());
+    state.orders_of_actorid.insert(msg::source(), user_order_inner_map);
 
 }
 
@@ -101,6 +122,7 @@ extern "C" fn init() {
 extern "C" fn handle() {
     let state = unsafe { INSCRIBEIOSTATES.as_mut().expect("failed to get state as mut") };
     let action: Action = gstd::msg::load().expect("failed to load action");
+    // let map_balance = unsafe { BALANCES.as_mut().expect("failed to get map balance") };
 
     match action {
         Action::Deploy { inscribe_data  } => {
@@ -109,6 +131,7 @@ extern "C" fn handle() {
             let is_deployed = state.deploy(inscribe_data.clone(), id);
             assert_eq!(is_deployed, true);
             msg::reply(Event::DeployEvent { inscribe_data },0).expect("Got error");
+            
         },
 
         Action::Transfer { inscribe_id, from, to, amt } => {
@@ -201,11 +224,16 @@ extern "C" fn handle() {
             };
 
             // update && save order info.
+            // When user list LimitBuyOrder need to send vara value of price to the contract.
             if order.order_type == OrderType::LimitBuy {
                 assert_eq!(msg::value(), price);
             }
 
-            state.insert_order_to_all_orders(order_id, order);
+            state.insert_order_to_all_orders(order_id.clone(), order.clone());
+
+            // store actorid's order info.
+            state.insert_actorid_order(creator, order_id.clone(), order.clone());
+            // state.orders_of_actorid.insert(msg_sender, o)
 
 
             // let _ = msg::reply(Event::ListSellOrder { creator, inscribe_id, amt, price }, 0);
@@ -259,34 +287,34 @@ extern "C" fn handle() {
             let _send = msg::send(seller, "Order filled", seller_value).expect("Send Vara Failed");
             let _send = msg::send(admin, "fee", 1000000000000).expect("Send market fee Failed");
         },
-        Action::ListBuyOrder { creator, inscribe_id, amt, price, index } => {
-            // check inscribe_id is exsiting.
-            let is_exsiting = state.check_inscribe_by_id(inscribe_id);
-            assert_eq!(true, is_exsiting);
-            // check amt of actorid >= amt of user input.
-            let user = msg::source();
-            let is_amt_ok = state.check_amt_of_user(inscribe_id, user, amt);
-            assert_eq!(true, is_amt_ok);
+        // Action::ListBuyOrder { creator, inscribe_id, amt, price, index } => {
+        //     // check inscribe_id is exsiting.
+        //     let is_exsiting = state.check_inscribe_by_id(inscribe_id);
+        //     assert_eq!(true, is_exsiting);
+        //     // check amt of actorid >= amt of user input.
+        //     let user = msg::source();
+        //     let is_amt_ok = state.check_amt_of_user(inscribe_id, user, amt);
+        //     assert_eq!(true, is_amt_ok);
 
-            // generate orderid
-            let orderid = state.last_order_id();
+        //     // generate orderid
+        //     let orderid = state.last_order_id();
 
-            let od = Order{
-                creator: msg::source(),
-                inscribe_id: InscribeIndexes(inscribe_id),
-                amt,
-                price,
-                order_status: OrderStatus::Listed,
-                order_type: OrderType::LimitBuy,
-            };
+        //     let od = Order{
+        //         creator: msg::source(),
+        //         inscribe_id: InscribeIndexes(inscribe_id),
+        //         amt,
+        //         price,
+        //         order_status: OrderStatus::Listed,
+        //         order_type: OrderType::LimitBuy,
+        //     };
 
-            // check the value of msg sender 
-            assert_eq!(msg::value(), price);
+        //     // check the value of msg sender 
+        //     assert_eq!(msg::value(), price);
 
-            // save infos of order into states.
-            let update_oder_info = state.update_order_status(orderid, od);
-            assert_eq!(update_oder_info, true);
-        },
+        //     // save infos of order into states.
+        //     let update_oder_info = state.update_order_status(orderid, od);
+        //     assert_eq!(update_oder_info, true);
+        // },
         
         Action::FillSellOrder { orderid } => {
             // check orderid is exsiting
@@ -348,25 +376,25 @@ extern "C" fn handle() {
             let is_update_sucess = state.update_order_status(orderid, od.clone());
             assert_eq!(is_update_sucess, true);
         },
-        Action::CancelBuyOrder { orderid } => {
-            // check orderid
-            let is_order_existing = state.check_order_id_exsiting(orderid);
-            assert_eq!(is_order_existing, true);
+        // Action::CancelBuyOrder { orderid } => {
+        //     // check orderid
+        //     let is_order_existing = state.check_order_id_exsiting(orderid);
+        //     assert_eq!(is_order_existing, true);
 
-            // check order's status
-            let mut order = state.all_orders.get_key_value(&OrderId(orderid)).expect("msg").1.clone();
-            assert_eq!(order.order_status, OrderStatus::Listed);
+        //     // check order's status
+        //     let mut order = state.all_orders.get_key_value(&OrderId(orderid)).expect("msg").1.clone();
+        //     assert_eq!(order.order_status, OrderStatus::Listed);
 
-            // let index = order.inscribe_id;
-            let price = order.price.clone();
-            let refund = msg::send(order.creator, "CancelBuyOrder", price).expect("msg");
+        //     // let index = order.inscribe_id;
+        //     let price = order.price.clone();
+        //     let refund = msg::send(order.creator, "CancelBuyOrder", price).expect("msg");
 
-            // update order status
-            order.order_status = OrderStatus::Canceled;
-            let is_update_sucess = state.update_order_status(orderid, order);
-            assert_eq!(is_update_sucess, true);
+        //     // update order status
+        //     order.order_status = OrderStatus::Canceled;
+        //     let is_update_sucess = state.update_order_status(orderid, order);
+        //     assert_eq!(is_update_sucess, true);
 
-        },
+        // },
         Action::UpdateInscribe { inscribe_id, inscribedata } => {
             // check msg.value.
             let value = msg::value();
@@ -399,6 +427,12 @@ extern "C" fn handle() {
 
             let _ = msg::reply(Event::Verify { inscribe_id, verifystatus }, 0);      
         },
+        Action::BalanceTest { id,  actor, amt } =>{
+            let mut map: BTreeMap<ActorId, u128> = BTreeMap::new();
+            map.insert(actor, amt);
+
+            state.balances.insert(id, map);
+        },
     }
 }
 
@@ -411,19 +445,15 @@ extern "C" fn state() {
     let state = unsafe { INSCRIBEIOSTATES.as_mut().expect("failed to get state as mut").clone() };
 
     let reply = match query {
-
+        Query::All => { Reply::All(state.clone()) },
         Query::Whoami => Reply::Whoami(gstd::msg::source()), // all zero addr
         Query::BlockNumber => Reply::BlockNumber(gstd::exec::block_height()),
         Query::BlockTimestamp => Reply::BlockTimestamp(gstd::exec::block_timestamp()),
         Query::ProgramId => Reply::ProgramId(gstd::exec::program_id()),
         Query::MessageId => Reply::MessageId(gstd::msg::id()),
-        Query::QueryInscribe(u128) => {
-            let rt = state.map_inscribes.get_key_value(&InscribeIndexes(u128)).expect("msg").1.clone();
+        Query::QueryInscribe(index) => {
+            let rt: Inscribe = state.map_inscribes.get_key_value(&InscribeIndexes(index)).expect("msg").1.clone();
             Reply::ReplyInscribe(rt)
-        }
-        // Query::QueryInscribe(_) => todo!(),
-        Query::All => {
-            Reply::All(state.clone())
         },
         Query::QueryInscribeByActorId(index, s58address) => {
             let actor_amt_map = state.balances.get_key_value(&InscribeIndexes(index)).expect("msg").1.clone();

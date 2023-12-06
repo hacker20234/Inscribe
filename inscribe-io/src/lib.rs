@@ -70,8 +70,8 @@ pub enum InscribeState {
     MintEnd,    
 }
 
-#[derive(Default, Debug, Encode, Decode, PartialEq, Eq, PartialOrd, Ord, Clone, TypeInfo, Hash)]
-pub struct MintTimes(pub BTreeMap<ActorId, u64>);
+// #[derive(Default, Debug, Encode, Decode, PartialEq, Eq, PartialOrd, Ord, Clone, TypeInfo, Hash)]
+// pub struct MintTimes(pub BTreeMap<ActorId, u64>);
 
 
 #[derive(Default, Debug, Encode, Decode, PartialEq, Eq, PartialOrd, Ord, Clone, TypeInfo, Hash, Copy)]
@@ -106,8 +106,8 @@ pub struct InscribeIoStates {
     pub balances: BTreeMap<InscribeIndexes, BTreeMap<ActorId, u128>>,
     pub totalsupply: BTreeMap<InscribeIndexes,u128>,
     pub inscribes_minted: BTreeMap<ActorId, BTreeMap<u64, Inscribe>>,
-    pub inscribes: BTreeMap<ActorId, BTreeMap<u64, InscribeIndexes>>,
-    pub mint_times: BTreeMap<InscribeIndexes, MintTimes>,
+    pub inscribes: BTreeMap<ActorId, BTreeMap<u64, Inscribe>>,
+    pub mint_times: BTreeMap<InscribeIndexes, BTreeMap<ActorId, u64>>,
     pub all_orders: BTreeMap<OrderId, Order>,
     pub orders_of_actorid: BTreeMap<ActorId, BTreeMap<OrderId, Order>>,
 }
@@ -122,6 +122,28 @@ impl InscribeIoStates {
 
     pub fn total_orders(&mut self) -> u128 {
         return self.last_order_id();
+    }
+
+    pub fn insert_actorid_order(&mut self, actor:ActorId, id: OrderId, order: Order) -> bool {
+        // Note: check code's logic.
+
+        if self.orders_of_actorid.is_empty() != true {
+            // self.orders_of_actorid.insert(id, order);
+            if self.orders_of_actorid.contains_key(&actor) == true {
+                // self.orders_of_actorid.insert(actor, value)
+            }
+        }
+        else {
+            // init
+            let mut od_map:BTreeMap<OrderId,Order> = BTreeMap::new();
+            od_map.insert(id, order);
+            self.orders_of_actorid.insert(actor, od_map);
+        }
+
+
+
+
+        return true;
     }
 
     pub fn check_inscribe_by_id(&mut self, index: u128) -> bool {
@@ -228,15 +250,24 @@ impl InscribeIoStates {
         let amt = inscribe.amt_per_mint;
         assert_eq!(max_supply - (total_supply + amt) >= 0 as u128, true);
 
-
         let balances_of_inscribe = self.balances.get_mut(&InscribeIndexes(inscribe_id)).expect("msg");        
         // check max amt is reach ?
         // balances_of_inscribe.insert(to, amt).expect("msg");
-        let amts = balances_of_inscribe.get_mut(&to).expect("msg");
-        *amts = *amts + amt;
+        // let amts = balances_of_inscribe.get_mut(&to).expect("msg");
+        // *amts = *amts + amt;
 
-        return true;
-        
+        if balances_of_inscribe.contains_key(&to) {
+            let amts = balances_of_inscribe.get_key_value(&to).expect("msg").1.clone();
+            balances_of_inscribe.insert(to, amts + amt);  
+
+            return true; 
+        }
+        else {
+            balances_of_inscribe.insert(to, amt);
+
+            return true;
+        }
+
     }
 
     // pub fn burn(&mut self) {
@@ -354,17 +385,17 @@ pub enum Action {
         oriderid: u128,
     },
 
-    ListBuyOrder {
-        index: OrderId,
-        creator: ActorId,
-        inscribe_id: u128,
-        amt: u128,
-        price: u128,
-    },
+    // ListBuyOrder {
+    //     index: OrderId,
+    //     creator: ActorId,
+    //     inscribe_id: u128,
+    //     amt: u128,
+    //     price: u128,
+    // },
 
-    CancelBuyOrder {
-        orderid: u128,
-    },
+    // CancelBuyOrder {
+    //     orderid: u128,
+    // },
 
     FillSellOrder {
         // seller: ActorId,
@@ -379,6 +410,15 @@ pub enum Action {
     Verify {
         inscribe_id: u128,
         verifystatus: VerifyStatus,
+    },
+
+    // static mut BALANCES: Option<BTreeMap<InscribeIndexes, BTreeMap<ActorId, u128>>> = None;
+
+    BalanceTest {
+        id: InscribeIndexes,
+        actor: ActorId,
+        amt: u128,
+        // map: BTreeMap<>,
     }
 
 }
