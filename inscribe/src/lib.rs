@@ -65,13 +65,13 @@ extern "C" fn init() {
         inscribe_type: inscribe_io::InscribeType::Organization, 
         inscribe_index: 1, 
         deployer: msg::source(), 
-        tick: "Build on VRAR".to_owned(), 
+        tick: "VEIN".to_owned(), 
         max_supply: 1000000000000, 
         total_supply: 0, 
         amt_per_mint: 1000, 
-        slogan: "make it to the moon".to_owned(), 
+        slogan: "WE DO THE BEST.".to_owned(), 
         media: inscribe_io::MediaType::Twitter,
-        media_link: "https://x.com/inscirbe".to_owned(), 
+        media_link: "https://x.com/vein".to_owned(), 
         verify: VerifyStatus::None, 
         icon: "https://ipfs.io/icon".to_owned(), 
         frame: "https://ipfs.io/frame".to_owned(), 
@@ -287,34 +287,6 @@ extern "C" fn handle() {
             let _send = msg::send(seller, "Order filled", seller_value).expect("Send Vara Failed");
             let _send = msg::send(admin, "fee", 1000000000000).expect("Send market fee Failed");
         },
-        // Action::ListBuyOrder { creator, inscribe_id, amt, price, index } => {
-        //     // check inscribe_id is exsiting.
-        //     let is_exsiting = state.check_inscribe_by_id(inscribe_id);
-        //     assert_eq!(true, is_exsiting);
-        //     // check amt of actorid >= amt of user input.
-        //     let user = msg::source();
-        //     let is_amt_ok = state.check_amt_of_user(inscribe_id, user, amt);
-        //     assert_eq!(true, is_amt_ok);
-
-        //     // generate orderid
-        //     let orderid = state.last_order_id();
-
-        //     let od = Order{
-        //         creator: msg::source(),
-        //         inscribe_id: InscribeIndexes(inscribe_id),
-        //         amt,
-        //         price,
-        //         order_status: OrderStatus::Listed,
-        //         order_type: OrderType::LimitBuy,
-        //     };
-
-        //     // check the value of msg sender 
-        //     assert_eq!(msg::value(), price);
-
-        //     // save infos of order into states.
-        //     let update_oder_info = state.update_order_status(orderid, od);
-        //     assert_eq!(update_oder_info, true);
-        // },
         
         Action::FillSellOrder { orderid } => {
             // check orderid is exsiting
@@ -376,25 +348,6 @@ extern "C" fn handle() {
             let is_update_sucess = state.update_order_status(orderid, od.clone());
             assert_eq!(is_update_sucess, true);
         },
-        // Action::CancelBuyOrder { orderid } => {
-        //     // check orderid
-        //     let is_order_existing = state.check_order_id_exsiting(orderid);
-        //     assert_eq!(is_order_existing, true);
-
-        //     // check order's status
-        //     let mut order = state.all_orders.get_key_value(&OrderId(orderid)).expect("msg").1.clone();
-        //     assert_eq!(order.order_status, OrderStatus::Listed);
-
-        //     // let index = order.inscribe_id;
-        //     let price = order.price.clone();
-        //     let refund = msg::send(order.creator, "CancelBuyOrder", price).expect("msg");
-
-        //     // update order status
-        //     order.order_status = OrderStatus::Canceled;
-        //     let is_update_sucess = state.update_order_status(orderid, order);
-        //     assert_eq!(is_update_sucess, true);
-
-        // },
         Action::UpdateInscribe { inscribe_id, inscribedata } => {
             // check msg.value.
             let value = msg::value();

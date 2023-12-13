@@ -17,7 +17,7 @@ ft-main-io = { git = "https://github.com/gear-foundation/dapps-sharded-fungible-
 ft-storage = { git = "https://github.com/gear-foundation/dapps-sharded-fungible-token.git", tag = "2.1.4" }
 gclient = { git = "https://github.com/gear-tech/gear.git", version = "1.0.1"}
 gear-core = { git = "https://github.com/gear-tech/gear.git"}
-gear-wasm-builder = { git = "https://github.com/gear-tech/gear.git", version = "0.1.2"}
+gear-wasm-builder = { git = "https://github.com/gear-tech/gear.git", version = "1.0.2"}
 gmeta = { git = "https://github.com/gear-tech/gear.git", version = "1.0.1"}
 gsdk = { git = "https://github.com/gear-tech/gear.git", version = "1.0.1"}
 gstd = { git = "https://github.com/gear-tech/gear.git", version = "1.0.1"}
