@@ -1,8 +1,13 @@
 # Inscribe
 
 # build
+```
 cargo build --release
-
+```
+# test 
+```
+cargo test
+```
 # deploy
 ## Use Gear's Idea Tool
 
