@@ -1,5 +1,23 @@
 # Inscribe
 
+# build
+cargo build --release
+
+# deploy
+## Use Gear's Idea Tool
+
+- link: https://idea.gear-tech.io/programs?node=wss%3A%2F%2Ftestnet.vara.network 
+
+- build contract
+
+- upload wasm files on idea
+
+- use wallet sign and deploy
+
+# Try the contract on Idea Tool
+- find the contract just deploy
+- do some action
+- react new state of this contract.
 
 ## 项目背景/最初原因/需要解决的问题
    - 项目背景
@@ -7,18 +25,10 @@
      2. 市场的需求 / 用户的需求 很多初创项目很难提升自己的知名度/找到合作伙伴/,所以我有了这样一个想法,那就是为他们建立一个门户.
      他们可以在上面展示自己的想法,找到一些一起奋斗的伙伴. 成熟的团队可以利用它扩大知名度和业务范围.
 
-    所以我们构建这个项目
-   
-   - 最初的原因
-   最初的原因通常是项目的初衷或动机。它可能是一个问题、挑战、机会或愿望，激发了项目的启动。最初的原因通常与项目的目标和价值紧密相关，是项目发起的动力。
-
-   - 需要解决的问题
-      解决的问题指的是项目旨在解决的具体难题或挑战。它可以是市场上的缺陷、技术上的难题、业务流程中的瓶颈等。解决的问题通常是项目的核心目标，通过实施项目来解决问题并带来益处。
-
-     - 用户：这个项目能做什么！ 它可以帮助...
-     - 市场：公平，
-## 技术架构
+## 技术架构和优势
    在 Gear / Vara Network 上构建智能合约和 Dapp
    - 技术：完整名片发型/分发/交换功能
-   - 
+   - 无需链下索引,因此可靠性增强,所有的数据公开透明,处理迅速
+   - 内置的交易市场
+
 
